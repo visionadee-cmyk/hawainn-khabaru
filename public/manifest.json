@@ -1,0 +1,28 @@
+{
+  "name": "އަހްދަމު - Ah'dhamu",
+  "short_name": "އަހްދަމު",
+  "description": "އަހްދަމު - މޯލްޑިވްސް ނިޔާރު ސެންޓަރު ވެބްސައިޓް",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "dv",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "magazine"],
+  "screenshots": []
+}
