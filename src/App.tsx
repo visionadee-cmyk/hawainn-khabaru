@@ -11,10 +11,17 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
 import DesktopNav from './components/DesktopNav';
+import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
+
+
+
+import AdBanner from './components/AdBanner';
+import NewsTicker from './components/NewsTicker';
 
 function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [language, setLanguage] = useState<'en' | 'dv'>('dv');
   const location = useLocation();
 
   useEffect(() => {
@@ -24,7 +31,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <DesktopNav theme={theme} setTheme={setTheme} />
+      <AdBanner />
+      <NewsTicker />
+      <DesktopNav theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} />
+      <BottomNav 
+        links={[
+          { label: language === 'en' ? 'Home' : 'މަހު', path: '/' },
+          { label: language === 'en' ? 'Categories' : 'ކެޓަގަރީ', path: '/categories' },
+          { label: language === 'en' ? 'Videos' : 'ވިޑިއޯ', path: '/videos' },
+          { label: language === 'en' ? 'Notifications' : 'ނައިފިރިކަން', path: '/notifications' },
+          { label: language === 'en' ? 'Profile' : 'ޕްރޮފައިލް', path: '/profile' },
+        ]}
+        activePath={location.pathname}
+      />
       <AnimatePresence mode="wait">
         <motion.main
           key={location.pathname}

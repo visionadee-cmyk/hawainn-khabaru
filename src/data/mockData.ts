@@ -1,6 +1,7 @@
 export type Category = {
   id: string;
   title: string;
+  titleEn: string;
   color: string;
 };
 
@@ -20,14 +21,14 @@ export type Article = {
 };
 
 export const categories: Category[] = [
-  { id: 'local', title: 'ލޯކަލް', color: 'bg-cyan-500' },
-  { id: 'politics', title: 'ޕޮލިޓިކްސް', color: 'bg-amber-500' },
-  { id: 'sports', title: 'ސްޕޯރޓް', color: 'bg-emerald-500' },
-  { id: 'islamic', title: 'އިސްލާމިކް', color: 'bg-violet-500' },
-  { id: 'business', title: 'ބިޒްނަސް', color: 'bg-sky-500' },
-  { id: 'technology', title: 'ޓެކްނޮލޮޖީ', color: 'bg-fuchsia-500' },
-  { id: 'world', title: 'ވޯލްޑް', color: 'bg-rose-500' },
-  { id: 'entertainment', title: 'އެންޓެރޓޭންމަންޓް', color: 'bg-indigo-500' },
+  { id: 'local', title: 'ލޯކަލް', titleEn: 'Local', color: 'bg-cyan-500' },
+  { id: 'politics', title: 'ސިޔާސީ', titleEn: 'Politics', color: 'bg-amber-500' },
+  { id: 'sports', title: 'ކުޅިވަރު', titleEn: 'Sports', color: 'bg-emerald-500' },
+  { id: 'islamic', title: 'އިސްލާމީ', titleEn: 'Islamic', color: 'bg-violet-500' },
+  { id: 'business', title: 'ވިޔަފާރި', titleEn: 'Business', color: 'bg-sky-500' },
+  { id: 'technology', title: 'ޓެކްނޮލޮޖީ', titleEn: 'Technology', color: 'bg-fuchsia-500' },
+  { id: 'world', title: 'ދުނިޔެ', titleEn: 'World', color: 'bg-rose-500' },
+  { id: 'entertainment', title: 'މަޖާ', titleEn: 'Entertainment', color: 'bg-indigo-500' },
 ];
 
 export const articles: Article[] = [

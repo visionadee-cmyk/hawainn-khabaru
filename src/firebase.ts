@@ -1,18 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyD4Ow7qv5UqTphn-fzBEaBDppdclvsy6IM',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'ah--dhamu-news.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'ah--dhamu-news',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'ah--dhamu-news.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '750592713557',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:750592713557:web:0ee4794d5c45281de8c5dc',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-SJFYYECELW',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBdWKqik66fis2Bs4rdjM8YZkdCOoqLuqM',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'hawainn-khabaru.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'hawainn-khabaru',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'hawainn-khabaru.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '623605252027',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:623605252027:web:41035193d2062fc6f14e9e',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-ED3QC22TWG',
 };
 
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 

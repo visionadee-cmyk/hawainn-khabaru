@@ -1,14 +1,18 @@
 {
-  "name": "ahdhamu",
+  "name": "hawainn-khabaru",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.2",
     "firebase": "^10.11.0",
     "framer-motion": "^11.0.0",
     "react": "^18.3.1",

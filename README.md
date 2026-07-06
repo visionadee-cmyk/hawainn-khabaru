@@ -30,8 +30,8 @@ Modern Maldives news portal with full Dhivehi RTL support, mobile-first PWA UI, 
 
 ## Admin credentials
 
-- Email: `ahdhamunews@gmail.com`
-- Password: `Ziyad@123`
+- Email: `hawainnkhabaru@gmail.com`
+- Password: `Adhu1447`
 
 Use `/admin` to sign in and add news directly from the dashboard.
 

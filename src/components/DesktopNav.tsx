@@ -4,27 +4,49 @@ import { motion } from 'framer-motion';
 type DesktopNavProps = {
   theme: 'dark' | 'light';
   setTheme: (theme: 'dark' | 'light') => void;
+  language: 'en' | 'dv';
+  setLanguage: (language: 'en' | 'dv') => void;
 };
 
-export default function DesktopNav({ theme, setTheme }: DesktopNavProps) {
+export default function DesktopNav({ theme, setTheme, language, setLanguage }: DesktopNavProps) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden border-b border-slate-800/80 bg-slate-950/95 backdrop-blur lg:block">
+    <header className="fixed inset-x-0 top-0 z-50 hidden border-b border-slate-200/60 bg-white/95 backdrop-blur lg:block">
       <div className="mx-auto flex h-20 max-w-[1600px] items-center justify-between gap-6 px-6">
-        <Link to="/" className="group inline-flex items-center gap-3 text-xl font-black uppercase tracking-[0.2em] text-white transition">
-          <img src="/logo.png" alt="Ah'dhamu logo" className="h-12 w-12 rounded-3xl object-cover" />
-          <div>
-            <p className="text-xs text-slate-400">Ah'dhamu</p>
-            <p className="text-sm text-slate-100">މޯލްޑިވްސް ނިޔާރު</p>
+        {/* Globe icon on the left */}
+        <div className="flex items-center gap-4">
+          <img src="/logo.svg" alt="Globe" className="h-12 w-12 object-contain" />
+        </div>
+        {/* Center navigation links */}
+        <nav className="flex-1 flex justify-center">
+          <ul className="flex gap-8 text-lg font-semibold text-slate-700">
+            <li><Link to="/">މައި ޞަފްޙާ</Link></li>
+            <li><Link to="/categories">ބައިތައް</Link></li>
+            <li><Link to="/videos">ވީޑިއޯތައް</Link></li>
+            <li><Link to="/notifications">ނޮޓިފިކޭޝަންތައް</Link></li>
+            <li><Link to="/profile">ޕްރޮފައިލް</Link></li>
+          </ul>
+        </nav>
+        {/* Logo on the right */}
+        <Link to="/" className="group inline-flex items-center gap-3 text-xl font-black uppercase tracking-[0.2em] text-slate-900 transition">
+          <img src="/logo.png" alt="Hawainn Khabaru logo" className="h-12 w-12 rounded-3xl object-cover" />
+          <div className="hidden xl:block">
+            <p className="text-xs text-slate-400">Hawainn Khabaru</p>
+            <p className="text-sm text-slate-700">ހަވާއިން ޚަބަރު</p>
           </div>
         </Link>
-        <div className="flex items-center gap-3 text-slate-300">
-          <div className="rounded-3xl bg-slate-900/80 px-4 py-3 text-right shadow-soft">
-            <p className="text-xs text-slate-500">ތައުރީފު</p>
-            <p className="text-sm font-semibold">ތަނައްޓޮޢީ އިންޓެލް</p>
-          </div>
+        {/* Language and Theme toggles */}
+        <div className="flex items-center gap-2 ml-4">
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
+            aria-label="Toggle language"
+            title="Toggle language"
+          >
+            {language === 'en' ? '🇬🇧' : '🇲🇻'}
+          </button>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? '🌙' : '☀️'}
