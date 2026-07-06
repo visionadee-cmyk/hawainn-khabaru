@@ -259,6 +259,12 @@ export default function AdminDashboard() {
   const [editTrending, setEditTrending] = useState(false);
   const [editBreaking, setEditBreaking] = useState(false);
   
+  // Article image upload state
+  const [articleFile, setArticleFile] = useState<File | null>(null);
+  const [uploadingArticle, setUploadingArticle] = useState(false);
+  const [editArticleFile, setEditArticleFile] = useState<File | null>(null);
+  const [uploadingEditArticle, setUploadingEditArticle] = useState(false);
+  
   // Banner management state
   const [banners, setBanners] = useState<any[]>([]);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -359,6 +365,21 @@ export default function AdminDashboard() {
 
     setSubmitting(true);
     try {
+      // Upload image if file is selected
+      let finalImageUrl = imageUrl;
+      if (articleFile) {
+        setUploadingArticle(true);
+        try {
+          finalImageUrl = await uploadImage(articleFile, 'articles');
+        } catch (uploadError) {
+          setMessage(t.newsError + ': Failed to upload image');
+          setSubmitting(false);
+          setUploadingArticle(false);
+          return;
+        }
+        setUploadingArticle(false);
+      }
+      
       // Generate numeric ID starting from 1000
       const articlesSnapshot = await getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(1)));
       let nextId = 1000;
@@ -379,7 +400,7 @@ export default function AdminDashboard() {
         excerpt: excerptDv || excerpt,
         excerptEn: excerpt,
         category,
-        image: imageUrl,
+        image: finalImageUrl,
         publishedAt: new Date().toLocaleDateString('dv'),
         author: user.email || 'admin',
         views: 0,
@@ -397,6 +418,7 @@ export default function AdminDashboard() {
       setExcerpt('');
       setExcerptDv('');
       setImageUrl('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
+      setArticleFile(null);
       setBody1('');
       setBody1Dv('');
       setBody2('');
@@ -486,12 +508,26 @@ export default function AdminDashboard() {
     if (!editingArticle) return;
 
     try {
+      // Upload image if file is selected
+      let finalImageUrl = editImageUrl;
+      if (editArticleFile) {
+        setUploadingEditArticle(true);
+        try {
+          finalImageUrl = await uploadImage(editArticleFile, 'articles');
+        } catch (uploadError) {
+          setMessage(t.newsUpdateError + ': Failed to upload image');
+          setUploadingEditArticle(false);
+          return;
+        }
+        setUploadingEditArticle(false);
+      }
+      
       await updateDoc(doc(db, 'articles', editingArticle.id), {
         title: editTitleDv || editTitle,
         titleEn: editTitle,
         excerpt: editExcerptDv || editExcerpt,
         excerptEn: editExcerpt,
-        image: editImageUrl,
+        image: finalImageUrl,
         category: editCategory,
         body: [editBody1Dv, editBody2Dv, editBody3Dv].filter(Boolean),
         bodyEn: [editBody1, editBody2, editBody3].filter(Boolean),
@@ -501,6 +537,7 @@ export default function AdminDashboard() {
 
       setMessage(t.newsUpdated);
       setEditingArticle(null);
+      setEditArticleFile(null);
       loadDashboard();
     } catch (error) {
       setMessage(t.newsUpdateError);
@@ -783,19 +820,27 @@ export default function AdminDashboard() {
                     onChange={(e) => setImageUrl(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                     placeholder="https://..."
-                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
+                  <label className="block text-sm font-semibold text-slate-300">Upload Image</label>
                   <input
-                    value={readingTime}
-                    onChange={(e) => setReadingTime(e.target.value)}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setArticleFile(e.target.files?.[0] || null)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={language === 'en' ? '5 min' : '5 މިނިޓް'}
-                    required
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
+                <input
+                  value={readingTime}
+                  onChange={(e) => setReadingTime(e.target.value)}
+                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  placeholder={language === 'en' ? '5 min' : '5 މިނިޓް'}
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph1}</label>
@@ -1190,7 +1235,15 @@ export default function AdminDashboard() {
                     onChange={(e) => setEditImageUrl(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                     placeholder="https://..."
-                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">Upload Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditArticleFile(e.target.files?.[0] || null)}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                   />
                 </div>
                 <div>
