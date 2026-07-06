@@ -225,8 +225,12 @@ export default function ArticlePage() {
         <meta property="og:title" content={article?.title} />
         <meta property="og:description" content={article?.excerpt} />
         <meta property="og:image" content={article?.image} />
+        <meta property="og:image:url" content={article?.image} />
+        <meta property="og:image:secure_url" content={article?.image} />
+        <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
+        <meta property="og:url" content={window.location.href} />
         <meta name="twitter:image" content={article?.image} />
       </Helmet>
       <PromoBanner location="article" />
