@@ -183,6 +183,7 @@ export default function ArticlePage() {
   };
 
   const updateReactionCount = async (type: 'like' | 'dislike', delta: number) => {
+    if (!id) return;
     const countRef = doc(db, 'articles', id, type === 'like' ? 'likes' : 'dislikes', 'count');
     const countDoc = await getDoc(countRef);
     const currentCount = countDoc.exists() ? countDoc.data().count : 0;
