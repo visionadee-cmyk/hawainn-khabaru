@@ -29,7 +29,7 @@ export const categories: Category[] = [
   { id: 'technology', title: 'ޓެކްނޮލޮޖީ', titleEn: 'Technology', color: 'bg-fuchsia-500' },
   { id: 'world', title: 'ދުނިޔެ', titleEn: 'World', color: 'bg-rose-500' },
   { id: 'entertainment', title: 'މަޖާ', titleEn: 'Entertainment', color: 'bg-indigo-500' },
-  { id: 'health', title: 'ޞިއްޙަ', titleEn: 'Health', color: 'bg-lime-500' },
+  { id: 'health', title: 'ސިއްޙަތު', titleEn: 'Health', color: 'bg-lime-500' },
 ];
 
 export const articles: Article[] = [
