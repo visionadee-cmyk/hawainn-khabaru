@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { Article, categories } from '../data/mockData';
 import { db } from '../firebase';
 import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, addDoc, deleteDoc, setDoc, getDocsFromCache } from 'firebase/firestore';
@@ -219,6 +220,15 @@ export default function ArticlePage() {
 
   return (
     <div className="space-y-8 text-right">
+      <Helmet>
+        <title>{article?.title} | ހަވާއިން ޙަބަރު</title>
+        <meta property="og:title" content={article?.title} />
+        <meta property="og:description" content={article?.excerpt} />
+        <meta property="og:image" content={article?.image} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:image" content={article?.image} />
+      </Helmet>
       <PromoBanner location="article" />
       <motion.section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:p-8">
         <button
