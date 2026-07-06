@@ -11,6 +11,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
 import DesktopNav from './components/DesktopNav';
+import MobileNav from './components/MobileNav';
 import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
 
@@ -34,13 +35,14 @@ function App() {
       <AdBanner />
       <NewsTicker />
       <DesktopNav theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} />
+      <MobileNav theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} />
       <BottomNav 
         links={[
-          { label: language === 'en' ? 'Home' : 'މަހު', path: '/' },
-          { label: language === 'en' ? 'Categories' : 'ކެޓަގަރީ', path: '/categories' },
-          { label: language === 'en' ? 'Videos' : 'ވިޑިއޯ', path: '/videos' },
-          { label: language === 'en' ? 'Notifications' : 'ނައިފިރިކަން', path: '/notifications' },
-          { label: language === 'en' ? 'Profile' : 'ޕްރޮފައިލް', path: '/profile' },
+          { label: language === 'en' ? 'Home' : 'މައި ޞަފްޙާ', path: '/', icon: '🏠' },
+          { label: language === 'en' ? 'Categories' : 'ބައިތައް', path: '/categories', icon: '📂' },
+          { label: language === 'en' ? 'Videos' : 'ވީޑިއޯތައް', path: '/videos', icon: '🎬' },
+          { label: language === 'en' ? 'Notifications' : 'ނޮޓިފިކޭޝަންތައް', path: '/notifications', icon: '🔔' },
+          { label: language === 'en' ? 'Profile' : 'ޕްރޮފައިލް', path: '/profile', icon: '👤' },
         ]}
         activePath={location.pathname}
       />
@@ -51,11 +53,12 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="mx-auto max-w-[1600px] px-4 pb-24 pt-24 lg:px-6"
+          className="mx-auto max-w-[1600px] px-4 pb-24 pt-0 lg:px-6"
         >
           <Routes location={location}>
             <Route path="/" element={<Home />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/categories/:categoryId" element={<Categories />} />
             <Route path="/videos" element={<Videos />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />

@@ -14,20 +14,20 @@ export default function DesktopNav({ theme, setTheme, language, setLanguage }: D
       <div className="mx-auto flex h-20 max-w-[1600px] items-center justify-between gap-6 px-6">
         {/* Globe icon on the left */}
         <div className="flex items-center gap-4">
-          <img src="/logo.svg" alt="Globe" className="h-12 w-12 object-contain" />
+          <img src="/logo.png" alt="Hawainn Khabaru" className="h-12 w-12 object-contain" />
         </div>
         {/* Center navigation links */}
         <nav className="flex-1 flex justify-center">
           <ul className="flex gap-8 text-lg font-semibold text-slate-700">
-            <li><Link to="/">މައި ޞަފްޙާ</Link></li>
-            <li><Link to="/categories">ބައިތައް</Link></li>
-            <li><Link to="/videos">ވީޑިއޯތައް</Link></li>
-            <li><Link to="/notifications">ނޮޓިފިކޭޝަންތައް</Link></li>
-            <li><Link to="/profile">ޕްރޮފައިލް</Link></li>
+            <li><Link to="/" className="transition hover:text-sky-600 hover:scale-105">މައި ޞަފްޙާ</Link></li>
+            <li><Link to="/categories" className="transition hover:text-sky-600 hover:scale-105">ބައިތައް</Link></li>
+            <li><Link to="/videos" className="transition hover:text-sky-600 hover:scale-105">ވީޑިއޯތައް</Link></li>
+            <li><Link to="/notifications" className="transition hover:text-sky-600 hover:scale-105">ނޮޓިފިކޭޝަންތައް</Link></li>
+            <li><Link to="/profile" className="transition hover:text-sky-600 hover:scale-105">ޕްރޮފައިލް</Link></li>
           </ul>
         </nav>
         {/* Logo on the right */}
-        <Link to="/" className="group inline-flex items-center gap-3 text-xl font-black uppercase tracking-[0.2em] text-slate-900 transition">
+        <Link to="/" className="group inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft lg:p-8 text-xl font-black uppercase tracking-[0.2em] text-slate-900 transition hover:border-slate-300">
           <img src="/logo.png" alt="Hawainn Khabaru logo" className="h-12 w-12 rounded-3xl object-cover" />
           <div className="hidden xl:block">
             <p className="text-xs text-slate-400">Hawainn Khabaru</p>

@@ -1,0 +1,119 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+
+type MobileNavProps = {
+  theme: 'dark' | 'light';
+  setTheme: (theme: 'dark' | 'light') => void;
+  language: 'en' | 'dv';
+  setLanguage: (lang: 'en' | 'dv') => void;
+};
+
+const categories = [
+  { id: 'local', title: 'ލޯކަލް', color: 'bg-cyan-500' },
+  { id: 'politics', title: 'ސިޔާސީ', color: 'bg-amber-500' },
+  { id: 'sports', title: 'ކުޅިވަރު', color: 'bg-emerald-500' },
+  { id: 'islamic', title: 'އިސްލާމީ', color: 'bg-violet-500' },
+  { id: 'business', title: 'ވިޔަފާރި', color: 'bg-sky-500' },
+  { id: 'technology', title: 'ޓެކްނޮލޮޖީ', color: 'bg-fuchsia-500' },
+  { id: 'world', title: 'ދުނިޔެ', color: 'bg-rose-500' },
+  { id: 'entertainment', title: 'މަޖާ', color: 'bg-indigo-500' },
+];
+
+export default function MobileNav({ theme, setTheme, language, setLanguage }: MobileNavProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <nav className="lg:hidden sticky top-0 z-50 border-b border-slate-800 bg-slate-950 backdrop-blur">
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Hawainn Khabaru" className="h-8 w-8 object-contain" />
+          <span className="text-base font-bold text-white">
+            {language === 'en' ? 'Hawainn Khabaru' : 'ހަވާއިން ޚަބަރު'}
+          </span>
+        </div>
+        
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-white focus:outline-none"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            {isOpen ? (
+              <path d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-slate-800 bg-slate-900"
+          >
+            <div className="space-y-1 px-4 py-3">
+              <div className="mb-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-sky-400">ބައިތައް</p>
+                    <h2 className="mt-2 text-2xl font-bold text-white">ހުރިހާ ބައިތައް</h2>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-2">
+                  {categories.map((category) => (
+                    <Link 
+                      key={category.id} 
+                      to={`/categories/${category.id}`}
+                      onClick={() => setIsOpen(false)}
+                      className={`cursor-pointer rounded-xl border border-slate-700 p-3 ${category.color} bg-opacity-20 transition hover:border-slate-600`}
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">{category.id}</p>
+                      <h3 className="mt-1 text-sm font-semibold text-white">{category.title}</h3>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3">
+                <span className="text-sm text-slate-300">
+                  {language === 'en' ? 'Language' : 'ބަސް'}
+                </span>
+                <button
+                  onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
+                  className="text-sm font-semibold text-sky-400 transition hover:text-sky-300"
+                >
+                  {language === 'en' ? 'DV' : 'EN'}
+                </button>
+              </div>
+              
+              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3">
+                <span className="text-sm text-slate-300">
+                  {language === 'en' ? 'Theme' : 'ތީމް'}
+                </span>
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="text-sm font-semibold text-sky-400 transition hover:text-sky-300"
+                >
+                  {theme === 'dark' ? '☀️' : '🌙'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+}

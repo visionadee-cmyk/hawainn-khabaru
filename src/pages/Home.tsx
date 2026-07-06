@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
 import ArticleCard from '../components/ArticleCard';
+import PromoBanner from '../components/PromoBanner';
 import { Article, categories } from '../data/mockData';
 import { db } from '../firebase';
 
@@ -62,19 +63,22 @@ export default function Home() {
   return (
     <div className="space-y-8 text-right lg:space-y-12">
       {/* Categories Section */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft lg:p-8">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft lg:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 text-right">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-sky-600">ހުރިހާ ބައިތައް</p>
-            <h2 className="mt-2 text-2xl font-bold text-slate-900">ފުރިހަމަ ބައިތައް</h2>
+            <p className="text-xs uppercase tracking-[0.2em] text-sky-600">ހުރިހާ ބައިތައް</p>
           </div>
-          <Link to="/categories" className="text-sm text-sky-700 transition hover:text-sky-900">އިތުރަށް ބަލާ</Link>
+          <Link to="/categories" className="text-xs text-sky-700 transition hover:text-sky-900">އިތުރަށް ބަލާ</Link>
         </div>
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap gap-2">
           {categories.map((category) => (
-            <span key={category.id} className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-100">
+            <Link 
+              key={category.id} 
+              to={`/categories/${category.id}`}
+              className="cursor-pointer rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900"
+            >
               {category.title}
-            </span>
+            </Link>
           ))}
         </div>
       </section>
@@ -86,10 +90,10 @@ export default function Home() {
           <div className="rounded-2xl border border-slate-200 bg-white p-0 shadow-soft overflow-hidden relative">
             <img src={activeHero.image} alt={activeHero.title} className="w-full h-96 object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-0 right-0 left-0 p-8 text-right z-10">
-              <span className="inline-flex rounded-full bg-sky-600/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white shadow-soft">{getCategoryTitle(activeHero.category)}</span>
-              <h3 className="mt-4 text-3xl font-bold text-white drop-shadow-lg">{activeHero.title}</h3>
-              <p className="mt-3 max-w-2xl text-base leading-6 text-slate-100 drop-shadow">{activeHero.excerpt}</p>
+            <div className="absolute bottom-0 right-0 left-0 p-3 text-right z-10 sm:p-8">
+              <span className="hidden sm:inline-flex rounded-full bg-sky-600/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white shadow-soft">{getCategoryTitle(activeHero.category)}</span>
+              <h3 className="mt-2 text-lg font-bold text-white drop-shadow-lg sm:mt-4 sm:text-3xl">{activeHero.title}</h3>
+              <p className="hidden mt-3 max-w-2xl text-base leading-6 text-slate-100 drop-shadow sm:block">{activeHero.excerpt}</p>
             </div>
             <div className="absolute top-4 left-4 flex gap-2">
               {heroArticles.map((_, index) => (
@@ -154,6 +158,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Promo Banner */}
+      <PromoBanner location="home" />
     </div>
   );
 }

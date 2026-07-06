@@ -1,27 +1,99 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import ReadingProgress from '../components/ReadingProgress';
-import { Article, articles as mockArticles } from '../data/mockData';
+import { Article, categories } from '../data/mockData';
+import { db } from '../firebase';
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, addDoc, deleteDoc, setDoc, getDocsFromCache } from 'firebase/firestore';
+import { auth } from '../firebase';
+import PromoBanner from '../components/PromoBanner';
 
 export default function ArticlePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [article, setArticle] = useState<Article | null | undefined>(undefined);
+  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [userReaction, setUserReaction] = useState<'like' | 'dislike' | null>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
     if (!id) {
       setArticle(null);
+      setLoading(false);
       return;
     }
-    const found = mockArticles.find((item) => item.id === id);
-    setArticle(found ?? null);
+    
+    const fetchArticle = async () => {
+      setLoading(true);
+      try {
+        const docRef = doc(db, 'articles', id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const articleData = { id: docSnap.id, ...docSnap.data() } as Article;
+          setArticle(articleData);
+          
+          // Fetch likes/dislikes
+          const likesDoc = await getDoc(doc(db, 'articles', id, 'likes', 'count'));
+          const dislikesDoc = await getDoc(doc(db, 'articles', id, 'dislikes', 'count'));
+          setLikes(likesDoc.exists() ? likesDoc.data().count : 0);
+          setDislikes(dislikesDoc.exists() ? dislikesDoc.data().count : 0);
+          
+          // Check user's reaction
+          if (auth.currentUser) {
+            const userLikeDoc = await getDoc(doc(db, 'articles', id, 'userReactions', auth.currentUser.uid));
+            if (userLikeDoc.exists()) {
+              setUserReaction(userLikeDoc.data().type);
+            }
+            
+            // Check bookmark status
+            const bookmarkDoc = await getDoc(doc(db, 'users', auth.currentUser.uid, 'bookmarks', id));
+            setIsBookmarked(bookmarkDoc.exists());
+          }
+          
+          // Fetch comments
+          const commentsQuery = query(collection(db, 'articles', id, 'comments'), orderBy('createdAt', 'desc'));
+          const commentsSnap = await getDocs(commentsQuery);
+          setComments(commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          
+          // Fetch related articles from the same category
+          if (articleData.category) {
+            const allArticlesQuery = query(collection(db, 'articles'), limit(50));
+            const allSnap = await getDocs(allArticlesQuery);
+            const related = allSnap.docs
+              .map(doc => ({ id: doc.id, ...doc.data() } as Article))
+              .filter(item => item.category === articleData.category && item.id !== id)
+              .sort((a, b) => {
+                const dateA = new Date(a.publishedAt || 0).getTime();
+                const dateB = new Date(b.publishedAt || 0).getTime();
+                return dateB - dateA;
+              })
+              .slice(0, 3);
+            setRelatedArticles(related);
+          }
+        } else {
+          setArticle(null);
+        }
+      } catch (error) {
+        console.error('Error fetching article:', error);
+        setArticle(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArticle();
   }, [id]);
 
-  if (article === undefined) {
+  if (loading || article === undefined) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft text-right">
-        <h2 className="text-2xl font-semibold text-slate-900">ސްލޯއެޑުން...</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">ލޯޑް ވަނީ...</h2>
       </div>
     );
   }
@@ -29,23 +101,130 @@ export default function ArticlePage() {
   if (!article) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft text-right">
-        <h2 className="text-2xl font-semibold text-slate-900">މި ހިޔާރު ނުފެނުން</h2>
-        <p className="mt-4 text-slate-500">ދިވެހި ހިޔާރު އެހެން ނުމިން ކޮށްފިނަމަށް.</p>
+        <h2 className="text-2xl font-semibold text-slate-900">މި ލިޔުން ނުފެނުން</h2>
+        <p className="mt-4 text-slate-500">އެހެން ލިޔުންތަކެއް ހޯއްދަވާ</p>
       </div>
     );
   }
 
-  const related = mockArticles.filter((item) => item.category === article.category && item.id !== article.id).slice(0, 3);
+  const related = relatedArticles;
+
+  // Handler functions
+  const handleBookmark = async () => {
+    if (!auth.currentUser || !id) return;
+    
+    try {
+      if (isBookmarked) {
+        await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'bookmarks', id));
+        setIsBookmarked(false);
+      } else {
+        await setDoc(doc(db, 'users', auth.currentUser.uid, 'bookmarks', id), {
+          articleId: id,
+          createdAt: new Date().toISOString()
+        });
+        setIsBookmarked(true);
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: article?.title,
+      text: article?.excerpt,
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('ލިންކް ކޮޕީ ކުރެވިއްޖެ');
+    }
+  };
+
+  const handleReaction = async (type: 'like' | 'dislike') => {
+    if (!auth.currentUser || !id) return;
+
+    try {
+      const userReactionRef = doc(db, 'articles', id, 'userReactions', auth.currentUser.uid);
+      const userReactionDoc = await getDoc(userReactionRef);
+      
+      if (userReactionDoc.exists()) {
+        const currentType = userReactionDoc.data().type;
+        
+        if (currentType === type) {
+          // Remove reaction
+          await deleteDoc(userReactionRef);
+          await updateReactionCount(type, -1);
+          setUserReaction(null);
+        } else {
+          // Change reaction
+          await setDoc(userReactionRef, { type, createdAt: new Date().toISOString() });
+          await updateReactionCount(currentType, -1);
+          await updateReactionCount(type, 1);
+          setUserReaction(type);
+        }
+      } else {
+        // Add new reaction
+        await setDoc(userReactionRef, { type, createdAt: new Date().toISOString() });
+        await updateReactionCount(type, 1);
+        setUserReaction(type);
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+    }
+  };
+
+  const updateReactionCount = async (type: 'like' | 'dislike', delta: number) => {
+    const countRef = doc(db, 'articles', id, type === 'like' ? 'likes' : 'dislikes', 'count');
+    const countDoc = await getDoc(countRef);
+    const currentCount = countDoc.exists() ? countDoc.data().count : 0;
+    await setDoc(countRef, { count: currentCount + delta });
+    
+    if (type === 'like') {
+      setLikes(prev => prev + delta);
+    } else {
+      setDislikes(prev => prev + delta);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!auth.currentUser || !id || !newComment.trim()) return;
+
+    try {
+      await addDoc(collection(db, 'articles', id, 'comments'), {
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName || 'Anonymous',
+        text: newComment,
+        createdAt: new Date().toISOString()
+      });
+      setNewComment('');
+      
+      // Refresh comments
+      const commentsQuery = query(collection(db, 'articles', id, 'comments'), orderBy('createdAt', 'desc'));
+      const commentsSnap = await getDocs(commentsQuery);
+      setComments(commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
 
   return (
     <div className="space-y-8 text-right">
-      <ReadingProgress />
+      <PromoBanner location="article" />
       <motion.section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:p-8">
         <button
           className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
           onClick={() => navigate(-1)}
         >
-          ← ބެހޭ ފުރިކޮށް
+          ← ފަހަތަށް
         </button>
         <div className="grid gap-6 lg:grid-cols-[1fr_0.5fr] lg:items-start">
           <div className="space-y-4">
@@ -59,7 +238,7 @@ export default function ArticlePage() {
                 <span>{article.author}</span>
                 <span>{article.readingTime}</span>
               </div>
-              <h1 className="text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">{article.title}</h1>
+              <h1 className="mt-4 mb-6 text-2xl font-bold leading-[2.5] text-slate-900 sm:text-3xl">{article.title}</h1>
               <p className="text-sm leading-7 text-slate-600">{article.excerpt}</p>
             </div>
             <div className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-soft">
@@ -68,18 +247,101 @@ export default function ArticlePage() {
               ))}
             </div>
             <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-500">ޕްރޮގްރެސް ބާރު ފަށާއިރު</p>
               <div className="flex flex-wrap items-center gap-3">
-                <button className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700">Share</button>
-                <button className="rounded-full border border-slate-300 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-900">Bookmark</button>
+                <button 
+                  onClick={() => handleReaction('like')}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    userReaction === 'like' 
+                      ? 'bg-sky-600 text-white' 
+                      : 'border border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  👍 {likes}
+                </button>
+                <button 
+                  onClick={() => handleReaction('dislike')}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    userReaction === 'dislike' 
+                      ? 'bg-red-600 text-white' 
+                      : 'border border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  👎 {dislikes}
+                </button>
+                <button 
+                  onClick={handleBookmark}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    isBookmarked 
+                      ? 'bg-amber-500 text-white' 
+                      : 'border border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {isBookmarked ? '🔖' : '📑'} ބުކްމާރކް
+                </button>
+                <button 
+                  onClick={handleShare}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
+                >
+                  📤 ޝެއަރ
+                </button>
+                <button 
+                  onClick={() => setShowComments(!showComments)}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
+                >
+                  💬 {comments.length}
+                </button>
               </div>
             </div>
+
+            {/* Comments Section */}
+            {showComments && (
+              <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-soft">
+                <h3 className="text-lg font-semibold text-slate-900">ކޮމެންޓްތައް</h3>
+                
+                {auth.currentUser ? (
+                  <div className="flex gap-3">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="ކޮމެންޓް ލިޔޭ..."
+                      className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 focus:border-sky-500 focus:outline-none"
+                      rows={3}
+                    />
+                    <button 
+                      onClick={handleAddComment}
+                      className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+                    >
+                      ފޮނުވާ
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">ކޮމެންޓް ލިޔުމަށް ލޮގްއިން ކުރޭ</p>
+                )}
+
+                <div className="space-y-3">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-slate-900">{comment.userName}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(comment.createdAt).toLocaleDateString('dv-MV')}
+                        </p>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700">{comment.text}</p>
+                    </div>
+                  ))}
+                  {comments.length === 0 && (
+                    <p className="text-sm text-slate-500">ކޮމެންޓް ނެތް</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <aside className="space-y-5">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-soft">
-              <h3 className="text-xl font-semibold text-slate-900">ދީން ހިޔާރުތައް</h3>
+              <h3 className="text-xl font-semibold text-slate-900">ގުޅުން ލިޔުންތައް</h3>
               <div className="mt-4 space-y-3 text-sm text-slate-700">
-                {related.map((item) => (
+                {related.map((item: Article) => (
                   <button
                     key={item.id}
                     className="block w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-right transition hover:border-sky-400/40"
@@ -93,7 +355,7 @@ export default function ArticlePage() {
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-soft">
               <h3 className="text-xl font-semibold text-slate-900">ކޮމެންޓް</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-500">ކޮމެންޓް ސެކްޝަން ހިމެނޭ. އެހެން ފަހު ޕޮންކެއް އިތުރު ކުރެވޭ ނުވަތަ ނެތް.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-500">ކޮމެންޓް ސެކްޝަން ހިމެނޭ. ފަހުން އިތުރު ފީޗާތަކެއް އިތުރު ކުރެވޭނެ</p>
             </div>
           </aside>
         </div>

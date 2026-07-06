@@ -15,6 +15,8 @@ app.post('/api/facebook/post', async (req, res) => {
   const pageId = process.env.FACEBOOK_PAGE_ID;
   const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
+  console.log('Facebook Post Request:', { title, excerpt, pageId, hasToken: !!accessToken });
+
   if (!pageId || !accessToken) {
     return res.status(500).json({
       success: false,
@@ -38,6 +40,7 @@ app.post('/api/facebook/post', async (req, res) => {
     });
 
     const data = await response.json().catch(() => ({}));
+    console.log('Facebook API Response:', { status: response.status, data });
 
     if (!response.ok) {
       return res.status(response.status).json({
@@ -48,6 +51,7 @@ app.post('/api/facebook/post', async (req, res) => {
 
     return res.json({ success: true, postId: data.id });
   } catch (error) {
+    console.error('Facebook API Error:', error);
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unexpected server error.',

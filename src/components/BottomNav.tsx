@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 type BottomNavProps = {
-  links: { label: string; path: string }[];
+  links: { label: string; path: string; icon?: string }[];
   activePath: string;
 };
 
@@ -15,7 +15,7 @@ export default function BottomNav({ links, activePath }: BottomNavProps) {
           return (
             <Link key={link.path} to={link.path} className="group flex flex-col items-center gap-1 text-[11px] font-semibold transition">
               <span className={`inline-flex h-9 w-9 items-center justify-center rounded-2xl transition ${active ? 'bg-brand-500 text-white shadow-soft' : 'bg-slate-800/90 text-slate-400 hover:bg-slate-700/90'}`}>
-                {link.label.slice(0, 2)}
+                {link.icon || link.label.slice(0, 2)}
               </span>
               <span className={active ? 'text-white' : 'text-slate-500'}>{link.label}</span>
             </Link>

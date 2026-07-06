@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 
 const notifications = [
-  { id: 'n1', title: 'ބްރޭކިންގް ނިންގެ ހިޔާރު: ބިޒްނަސް ޕްރޮޖެކްޓް މީހުންނާ ހަމަޖެހޭ', time: 'މާރޗް 22, 2:40 PM' },
-  { id: 'n2', title: 'ދިވެހި ސްޕޯރޓް ފެންނަށް ކުރަން ދީން ނިފައި', time: 'މެއި 03, 11:20 AM' },
-  { id: 'n3', title: 'މިހާން ހޯދާ ތަރައްޤީ ރަނގަޅުން ދިސްކްރިޕްޝަން', time: 'އޯކްޓޯބަރ 10, 09:00 AM' },
+  { id: 'n1', title: 'އެންމެ ފަހުގެ ޚަބަރު: ސިޔާސީ ޚަބަރުތައް އަޕްޑޭޓް ކުރެވިއްޖެ', time: 'މިއަދު 12:00 PM' },
+  { id: 'n2', title: 'ކުޅިވަރު ޚަބަރު: ދިވެހި ޓީމް މޮޅުވެއްޖެ', time: 'މިއަދު 10:30 AM' },
+  { id: 'n3', title: 'ވިޔަފާރި: އާއިލްސް މާރކެޓް އަޕްޑޭޓްތައް', time: 'އަހަރު 09:00 AM' },
 ];
 
 export default function Notifications() {
@@ -13,7 +13,7 @@ export default function Notifications() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-emerald-600">ނޮޓިފިކޭޝަންތައް</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">ޔޫޒަރ ނޮޓިފިކޭޝަންތައް</h2>
+            <h2 className="mt-2 text-3xl font-bold text-slate-900">ހަވާއިން ޚަބަރު ނޮޓިފިކޭޝަންތައް</h2>
           </div>
           <button className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">ކިޔާފައިވާ ކަމަށް މާރކް ކުރޭ</button>
         </div>

@@ -1,13 +1,14 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { categories } from '../data/mockData';
 import { postToFacebook, deleteFromFacebook } from '../utils/facebook';
+import { uploadImage } from '../utils/cloudinary';
 
-type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings';
+type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -95,6 +96,31 @@ export default function AdminDashboard() {
       cancel: 'Cancel',
       newsUpdated: 'News updated successfully!',
       newsUpdateError: 'Failed to update news. Please try again.',
+      manageBanners: 'Manage Banners',
+      bannersDesc: 'Upload and manage promotional banners.',
+      uploadBanner: 'Upload Banner',
+      bannerTitle: 'Banner Title',
+      bannerSubtitle: 'Banner Subtitle',
+      bannerImage: 'Banner Image',
+      selectImage: 'Select Image',
+      uploading: 'Uploading...',
+      bannerUploaded: 'Banner uploaded successfully!',
+      bannerUploadError: 'Failed to upload banner. Please try again.',
+      deleteBanner: 'Delete Banner',
+      confirmDeleteBanner: 'Are you sure you want to delete this banner?',
+      bannerDeleted: 'Banner deleted successfully!',
+      bannerDeleteError: 'Failed to delete banner. Please try again.',
+      selectBanner: 'Select Banner',
+      noBannerSelected: 'No banner selected',
+      currentBanner: 'Currently Displayed Banner',
+      bannerLocation: 'Banner Location',
+      bannerSize: 'Banner Size',
+      locationHome: 'Home Page',
+      locationArticle: 'Article Page',
+      locationCategory: 'Category Page',
+      sizeMobile: 'Mobile Only',
+      sizeDesktop: 'Desktop Only',
+      sizeBoth: 'Both Mobile & Desktop',
     },
     dv: {
       adminPanel: 'އެޑްމިން ޕެނަލް',
@@ -169,6 +195,31 @@ export default function AdminDashboard() {
       cancel: 'ކެންސަލް',
       newsUpdated: 'ޚަބަރު އަޕްޑޭޓް ކުރެވިއްޖެ',
       newsUpdateError: 'ޚަބަރު އަޕްޑޭޓް ކުރުމަށް ފެއިލް ވެއްޖެ',
+      manageBanners: 'ބެނަރު މެނޭޖް ކުރޭ',
+      bannersDesc: 'ޕްރޮމޯޝަނަލް ބެނަރު އަޕްލޯޑް ކުރާ އަދި މެނޭޖް ކުރޭ',
+      uploadBanner: 'ބެނަރު އަޕްލޯޑް ކުރޭ',
+      bannerTitle: 'ބެނަރު ސުރުޚީ',
+      bannerSubtitle: 'ބެނަރު ސަބްޓައިޓަލް',
+      bannerImage: 'ބެނަރު ފޮޓޯ',
+      selectImage: 'ފޮޓޯ ހޮވާ',
+      uploading: 'އަޕްލޯޑް ކުރަނީ...',
+      bannerUploaded: 'ބެނަރު އަޕްލޯޑް ކުރެވިއްޖެ',
+      bannerUploadError: 'ބެނަރު އަޕްލޯޑް ކުރުމަށް ފެއިލް ވެއްޖެ. އަލުން މަސައްކަތް ކުރޭ',
+      deleteBanner: 'ބެނަރު ޑިލީޓް ކުރޭ',
+      confirmDeleteBanner: 'މި ބެނަރު ޑިލީޓް ކުރާނީތަ؟',
+      bannerDeleted: 'ބެނަރު ޑިލީޓް ކުރެވިއްޖެ',
+      bannerDeleteError: 'ބެނަރު ޑިލީޓް ކުރުމަށް ފެއިލް ވެއްޖެ',
+      selectBanner: 'ބެނަރު ހޮވާ',
+      noBannerSelected: 'ބެނަރެއް ހޮވާފައި ނެތް',
+      currentBanner: 'މިހާރު ދައްކާ ބެނަރު',
+      bannerLocation: 'ބެނަރު ހުސްކަން',
+      bannerSize: 'ބެނަރު ސައިޒް',
+      locationHome: 'މައި ޞަފްޙާ',
+      locationArticle: 'ޚަބަރު ޞަފްޙާ',
+      locationCategory: 'ކެޓަގަރީ ޞަފްޙާ',
+      sizeMobile: 'މޮބައިލް',
+      sizeDesktop: 'ޑެސްކްޓޮޕް',
+      sizeBoth: 'ދެވަނަ (މޮބައިލް + ޑެސްކްޓޮޕް)',
     },
   };
 
@@ -207,6 +258,18 @@ export default function AdminDashboard() {
   const [editBody3Dv, setEditBody3Dv] = useState('');
   const [editTrending, setEditTrending] = useState(false);
   const [editBreaking, setEditBreaking] = useState(false);
+  
+  // Banner management state
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerTitle, setBannerTitle] = useState('');
+  const [bannerSubtitle, setBannerSubtitle] = useState('');
+  const [bannerLocation, setBannerLocation] = useState<'home' | 'article' | 'category'>('home');
+  const [bannerSize, setBannerSize] = useState<'mobile' | 'desktop' | 'both'>('both');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [selectedBannerId, setSelectedBannerId] = useState<string>('');
+  const [filterLocation, setFilterLocation] = useState<'home' | 'article' | 'category'>('home');
+  const [bannerError, setBannerError] = useState('');
 
   const navigate = useNavigate();
 
@@ -226,6 +289,19 @@ export default function AdminDashboard() {
       const visitors = visitorSnapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
       setVisitorDetails(visitors);
       setUniqueVisitors(new Set(visitors.map((item: any) => item.userAgent || item.referrer || item.path)).size);
+      
+      // Load banners
+      const bannerSnapshot = await getDocs(query(collection(db, 'banners'), orderBy('createdAt', 'desc')));
+      const bannersData = bannerSnapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
+      setBanners(bannersData);
+      
+      // Load selected banner based on filter location
+      const selectedBannerDoc = await getDocs(collection(db, 'settings'));
+      selectedBannerDoc.forEach((doc) => {
+        if (doc.id === `selectedBanner_${filterLocation}`) {
+          setSelectedBannerId(doc.data().bannerId || '');
+        }
+      });
     } catch (error) {
       console.warn('Unable to load dashboard data', error);
     }
@@ -283,7 +359,21 @@ export default function AdminDashboard() {
 
     setSubmitting(true);
     try {
-      const docRef = await addDoc(collection(db, 'articles'), {
+      // Generate numeric ID starting from 1000
+      const articlesSnapshot = await getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(1)));
+      let nextId = 1000;
+      if (!articlesSnapshot.empty) {
+        const lastArticle = articlesSnapshot.docs[0].data();
+        const lastId = parseInt(lastArticle.id || '0');
+        if (!isNaN(lastId) && lastId >= 1000) {
+          nextId = lastId + 1;
+        }
+      }
+      
+      const articleId = nextId.toString();
+      
+      await setDoc(doc(db, 'articles', articleId), {
+        id: articleId,
         title: titleDv || title,
         titleEn: title,
         excerpt: excerptDv || excerpt,
@@ -423,6 +513,122 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleBannerUpload = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!bannerFile || !user) {
+      setMessage('Please select an image');
+      return;
+    }
+
+    // Validate image size based on selected size option
+    const img = new Image();
+    const imageUrl = URL.createObjectURL(bannerFile);
+    
+    img.onload = async () => {
+      const width = img.width;
+      const height = img.height;
+      URL.revokeObjectURL(imageUrl);
+
+      // Validation rules
+      const isMobile = window.innerWidth < 768;
+      let isValid = true;
+      let errorMessage = '';
+
+      if (bannerSize === 'mobile') {
+        // Mobile banners should be optimized for mobile (max 768px width)
+        if (width > 768) {
+          isValid = false;
+          errorMessage = 'Mobile banners should be max 768px wide. Please resize the image or select "Both Mobile & Desktop" option.';
+        }
+      } else if (bannerSize === 'desktop') {
+        // Desktop banners should be at least 768px wide
+        if (width < 768) {
+          isValid = false;
+          errorMessage = 'Desktop banners should be at least 768px wide. Please use a larger image or select "Both Mobile & Desktop" option.';
+        }
+      }
+      // 'both' option accepts any size
+
+      if (!isValid) {
+        setBannerError(errorMessage);
+        setMessage(errorMessage);
+        return;
+      }
+
+      // Proceed with upload if validation passes
+      await uploadToCloudinary();
+    };
+
+    img.onerror = () => {
+      setBannerError('Failed to load image. Please try a different file.');
+      setMessage('Failed to load image. Please try a different file.');
+    };
+
+    img.src = imageUrl;
+  };
+
+  const uploadToCloudinary = async () => {
+    if (!bannerFile) return;
+
+    setUploadingBanner(true);
+    setBannerError('');
+    try {
+      // Upload to Cloudinary
+      const imageUrl = await uploadImage(bannerFile, 'banners');
+      
+      // Save to Firebase
+      const bannerRef = await addDoc(collection(db, 'banners'), {
+        title: bannerTitle,
+        subtitle: bannerSubtitle,
+        image: imageUrl,
+        location: bannerLocation,
+        size: bannerSize,
+        createdAt: serverTimestamp(),
+      });
+
+      setMessage(t.bannerUploaded);
+      setBannerFile(null);
+      setBannerTitle('');
+      setBannerSubtitle('');
+      setBannerLocation('home');
+      setBannerSize('both');
+      loadDashboard();
+    } catch (error) {
+      setMessage(t.bannerUploadError);
+      console.error(error);
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleSelectBanner = async (bannerId: string) => {
+    try {
+      await setDoc(doc(db, 'settings', `selectedBanner_${filterLocation}`), {
+        bannerId: bannerId,
+      }, { merge: true });
+      setSelectedBannerId(bannerId);
+      setMessage('Banner selected successfully');
+    } catch (error) {
+      console.error('Error selecting banner:', error);
+      setMessage('Failed to select banner');
+    }
+  };
+
+  const handleDeleteBanner = async (bannerId: string) => {
+    if (!confirm(t.confirmDeleteBanner)) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'banners', bannerId));
+      setMessage(t.bannerDeleted);
+      loadDashboard();
+    } catch (error) {
+      setMessage(t.bannerDeleteError);
+      console.error(error);
+    }
+  };
+
   const visitorCount = visitorDetails.length;
   const topVisitors = visitorDetails.slice(0, 8);
 
@@ -494,7 +700,7 @@ export default function AdminDashboard() {
       <>
         {/* Tabs */}
         <div className="flex gap-3 border-b border-slate-800 pb-4">
-          {(['articles', 'manage', 'analytics', 'settings'] as const).map((tab) => (
+          {(['articles', 'manage', 'banners', 'analytics', 'settings'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -506,6 +712,7 @@ export default function AdminDashboard() {
             >
               {tab === 'articles' && t.createNews}
               {tab === 'manage' && t.manageNews}
+              {tab === 'banners' && t.manageBanners}
               {tab === 'analytics' && t.analytics}
               {tab === 'settings' && t.settings}
             </button>
@@ -730,6 +937,193 @@ export default function AdminDashboard() {
                 ))
               ) : (
                 <p className="text-slate-400">{t.noVisitors}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Banners Tab */}
+        {activeTab === 'banners' && (
+          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-white">{t.manageBanners}</h3>
+            <p className="mt-2 text-sm text-slate-400">{t.bannersDesc}</p>
+            
+            {/* Upload Form */}
+            <form onSubmit={handleBannerUpload} className="mt-6 space-y-4">
+              {bannerError && (
+                <div className="rounded-2xl border border-rose-600 bg-rose-600/10 p-4 text-rose-400">
+                  {bannerError}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">{t.bannerTitle}</label>
+                <input
+                  value={bannerTitle}
+                  onChange={(e) => setBannerTitle(e.target.value)}
+                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  placeholder={t.bannerTitle}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">{t.bannerSubtitle}</label>
+                <input
+                  value={bannerSubtitle}
+                  onChange={(e) => setBannerSubtitle(e.target.value)}
+                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  placeholder={t.bannerSubtitle}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">{t.bannerLocation}</label>
+                  <select
+                    value={bannerLocation}
+                    onChange={(e) => setBannerLocation(e.target.value as 'home' | 'article' | 'category')}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    required
+                  >
+                    <option value="home">{t.locationHome}</option>
+                    <option value="article">{t.locationArticle}</option>
+                    <option value="category">{t.locationCategory}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">{t.bannerSize}</label>
+                  <select
+                    value={bannerSize}
+                    onChange={(e) => setBannerSize(e.target.value as 'mobile' | 'desktop' | 'both')}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    required
+                  >
+                    <option value="mobile">{t.sizeMobile}</option>
+                    <option value="desktop">{t.sizeDesktop}</option>
+                    <option value="both">{t.sizeBoth}</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">{t.bannerImage}</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
+                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  required
+                />
+              </div>
+              <button
+                disabled={uploadingBanner}
+                className="w-full rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {uploadingBanner ? t.uploading : t.uploadBanner}
+              </button>
+            </form>
+
+            {/* Banners List */}
+            <div className="mt-8">
+              <h4 className="text-lg font-semibold text-white mb-4">{t.currentBanner}</h4>
+              
+              {/* Location Filter */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.bannerLocation}</label>
+                <select
+                  value={filterLocation}
+                  onChange={(e) => {
+                    setFilterLocation(e.target.value as 'home' | 'article' | 'category');
+                    setSelectedBannerId('');
+                  }}
+                  className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                >
+                  <option value="home">{t.locationHome}</option>
+                  <option value="article">{t.locationArticle}</option>
+                  <option value="category">{t.locationCategory}</option>
+                </select>
+              </div>
+              
+              {/* Banner Selection Dropdown */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.selectBanner}</label>
+                <select
+                  value={selectedBannerId}
+                  onChange={(e) => handleSelectBanner(e.target.value)}
+                  className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                >
+                  <option value="">{t.noBannerSelected}</option>
+                  {banners.filter(b => b.location === filterLocation).map((banner) => (
+                    <option key={banner.id} value={banner.id}>
+                      {banner.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Currently Selected Banner Preview */}
+              {selectedBannerId && banners.find(b => b.id === selectedBannerId) && (
+                <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                  <p className="text-sm text-emerald-400 mb-2">✓ Currently Displayed:</p>
+                  {(() => {
+                    const currentBanner = banners.find(b => b.id === selectedBannerId);
+                    return currentBanner ? (
+                      <>
+                        <img src={currentBanner.image} alt={currentBanner.title} className="w-full h-32 object-cover rounded-lg mb-2" />
+                        <h4 className="font-semibold text-white">{currentBanner.title}</h4>
+                        {currentBanner.subtitle && <p className="text-sm text-slate-400">{currentBanner.subtitle}</p>}
+                      </>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
+              <h4 className="text-lg font-semibold text-white mb-4">All Banners ({filterLocation})</h4>
+              <div className="space-y-3">
+                {banners.filter(b => b.location === filterLocation).length > 0 ? (
+                  banners.filter(b => b.location === filterLocation).map((banner) => (
+                    <div key={banner.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <img src={banner.image} alt={banner.title} className="w-full h-32 object-cover rounded-lg mb-2" />
+                          <h4 className="font-semibold text-white">{banner.title}</h4>
+                          {banner.subtitle && <p className="mt-1 text-sm text-slate-400">{banner.subtitle}</p>}
+                          <div className="mt-2 flex gap-2 text-xs">
+                            <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                              {banner.size === 'mobile' ? t.sizeMobile : banner.size === 'desktop' ? t.sizeDesktop : t.sizeBoth}
+                            </span>
+                          </div>
+                          {selectedBannerId === banner.id && (
+                            <p className="mt-2 text-xs text-emerald-400">✓ Currently displayed</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteBanner(banner.id)}
+                          className="rounded-xl border border-rose-600 px-3 py-1.5 text-sm text-rose-400 transition hover:bg-rose-600/20"
+                        >
+                          {t.deleteBanner}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400">No banners uploaded for this location</p>
+                )}
+              </div>
+
+              {/* Full Size Preview */}
+              {selectedBannerId && banners.find(b => b.id === selectedBannerId) && (
+                <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-950/80 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-4">Full Size Preview</h4>
+                  {(() => {
+                    const currentBanner = banners.find(b => b.id === selectedBannerId);
+                    return currentBanner ? (
+                      <img 
+                        src={currentBanner.image} 
+                        alt={currentBanner.title} 
+                        className="w-full object-contain rounded-lg"
+                        style={{ maxHeight: '400px' }}
+                      />
+                    ) : null;
+                  })()}
+                </div>
               )}
             </div>
           </div>
