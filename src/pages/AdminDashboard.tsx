@@ -440,11 +440,6 @@ export default function AdminDashboard() {
   };
 
   const handlePostToFacebook = async (article: any) => {
-    if (article.facebookPostId) {
-      setMessage('Already posted to Facebook');
-      return;
-    }
-
     try {
       const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const articleUrl = `${appUrl}/article/${article.id}`;
@@ -456,7 +451,7 @@ export default function AdminDashboard() {
       if (fbResult.success && fbResult.postId) {
         // Store Facebook post ID in the article document
         await updateDoc(doc(db, 'articles', article.id), { facebookPostId: fbResult.postId });
-        setMessage(t.postedToFb);
+        setMessage(article.facebookPostId ? 'Reposted to Facebook' : t.postedToFb);
         loadDashboard();
       } else {
         setMessage(t.postToFbError);
@@ -911,14 +906,12 @@ export default function AdminDashboard() {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        {!article.facebookPostId && (
-                          <button
-                            onClick={() => handlePostToFacebook(article)}
-                            className="rounded-xl border border-blue-600 px-3 py-1.5 text-sm text-blue-400 transition hover:bg-blue-600/20"
-                          >
-                            {t.postToFb}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handlePostToFacebook(article)}
+                          className="rounded-xl border border-blue-600 px-3 py-1.5 text-sm text-blue-400 transition hover:bg-blue-600/20"
+                        >
+                          {t.postToFb}
+                        </button>
                         <button
                           onClick={() => handleEditArticle(article)}
                           className="rounded-xl border border-emerald-600 px-3 py-1.5 text-sm text-emerald-400 transition hover:bg-emerald-600/20"

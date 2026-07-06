@@ -27,16 +27,23 @@ app.post('/api/facebook/post', async (req, res) => {
   const message = [title, excerpt].filter(Boolean).join('\n\n').trim();
 
   try {
+    const requestBody = {
+      message,
+      access_token: accessToken,
+      published: 'true',
+    };
+
+    // Add link if provided (Facebook will scrape the image from the page)
+    if (articleUrl) {
+      requestBody.link = articleUrl;
+    }
+
     const response = await fetch(`https://graph.facebook.com/v20.0/${pageId}/feed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        message,
-        access_token: accessToken,
-        published: 'true',
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json().catch(() => ({}));
