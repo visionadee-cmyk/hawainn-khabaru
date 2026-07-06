@@ -18,6 +18,14 @@ interface BannerData {
 
 export default function PromoBanner({ location = 'home' }: PromoBannerProps) {
   const [banner, setBanner] = useState<BannerData | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchSelectedBanner = async () => {
@@ -32,7 +40,6 @@ export default function PromoBanner({ location = 'home' }: PromoBannerProps) {
             if (bannerDoc.exists()) {
               const bannerData = { id: bannerDoc.id, ...bannerDoc.data() } as BannerData;
               // Check if banner matches current location and size
-              const isMobile = window.innerWidth < 768;
               const shouldDisplay = 
                 bannerData.location === location && 
                 (bannerData.size === 'both' || 
@@ -42,6 +49,7 @@ export default function PromoBanner({ location = 'home' }: PromoBannerProps) {
               if (shouldDisplay) {
                 setBanner(bannerData);
               } else {
+                setBanner(null);
                 console.log('Banner does not match location or size requirements');
               }
             } else {
@@ -66,7 +74,7 @@ export default function PromoBanner({ location = 'home' }: PromoBannerProps) {
     };
 
     fetchSelectedBanner();
-  }, [location]);
+  }, [location, isMobile]);
 
   if (!banner) return null;
 

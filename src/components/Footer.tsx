@@ -38,8 +38,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Categories */}
-          <div className="space-y-6">
+          {/* Categories - Hidden on mobile */}
+          <div className="hidden space-y-6 lg:block">
             <h4 className="text-sm font-semibold uppercase tracking-wider text-white">ބައިތައް</h4>
             <div className="space-y-3 text-sm">
               {categories.slice(0, 6).map((item) => (
@@ -50,8 +50,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="space-y-6">
+          {/* Quick Links - Hidden on mobile */}
+          <div className="hidden space-y-6 lg:block">
             <h4 className="text-sm font-semibold uppercase tracking-wider text-white">ކުރިއަށް ލިންކްތައް</h4>
             <div className="space-y-3 text-sm">
               {quickLinks.slice(0, 5).map((item) => (
@@ -62,8 +62,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* App Download & SMS */}
-          <div className="space-y-6">
+          {/* App Download & SMS - Hidden on mobile */}
+          <div className="hidden space-y-6 lg:block">
             <h4 className="text-sm font-semibold uppercase tracking-wider text-white">އެޕް ޑައުންލޯޑް</h4>
             <div className="space-y-3">
               <a href="#" className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3 transition hover:border-sky-500/50 hover:bg-slate-800/50">

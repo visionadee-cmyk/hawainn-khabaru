@@ -50,6 +50,11 @@ export default function AdminDashboard() {
       paragraph1En: 'Paragraph 1 (English)',
       paragraph2En: 'Paragraph 2 (English - optional)',
       paragraph3En: 'Paragraph 3 (English - optional)',
+      addParagraph: 'Add Paragraph',
+      removeParagraph: 'Remove Paragraph',
+      paragraph: 'Paragraph',
+      paragraphDv: 'Paragraph (Dhivehi)',
+      paragraphEn: 'Paragraph (English)',
       trending: 'Trending',
       breaking: 'Breaking',
       submit: 'Submit News',
@@ -149,6 +154,11 @@ export default function AdminDashboard() {
       paragraph1En: 'ޕެރެގްރާފް 1 (އިނގިރޭސި)',
       paragraph2En: 'ޕެރެގްރާފް 2 (އިނގިރޭސި - އިޚްތިޔާރީ)',
       paragraph3En: 'ޕެރެގްރާފް 3 (އިނގިރޭސި - އިޚްތިޔާރީ)',
+      addParagraph: 'ޕެރެގްރާފް އިތުރުކުރޭ',
+      removeParagraph: 'ޕެރެގްރާފް ފޮހޮލުކުރޭ',
+      paragraph: 'ޕެރެގްރާފް',
+      paragraphDv: 'ޕެރެގްރާފް (ދިވެހި)',
+      paragraphEn: 'ޕެރެގްރާފް (އިނގިރޭސި)',
       trending: 'މަޝްހޫރު',
       breaking: 'އެންމެ ފަހުގެ',
       submit: 'ޚަބަރު ފޮނުވާ',
@@ -232,12 +242,9 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState(categories[0].id);
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
   const [readingTime, setReadingTime] = useState(language === 'en' ? '5 min' : '5މިނިޓް');
-  const [body1, setBody1] = useState('');
-  const [body1Dv, setBody1Dv] = useState('');
-  const [body2, setBody2] = useState('');
-  const [body2Dv, setBody2Dv] = useState('');
-  const [body3, setBody3] = useState('');
-  const [body3Dv, setBody3Dv] = useState('');
+  const [paragraphs, setParagraphs] = useState<Array<{ dv: string; en: string }>>([
+    { dv: '', en: '' }
+  ]);
   const [trending, setTrending] = useState(false);
   const [breaking, setBreaking] = useState(false);
   const [englishText, setEnglishText] = useState('');
@@ -250,12 +257,9 @@ export default function AdminDashboard() {
   const [editExcerptDv, setEditExcerptDv] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editCategory, setEditCategory] = useState('');
-  const [editBody1, setEditBody1] = useState('');
-  const [editBody1Dv, setEditBody1Dv] = useState('');
-  const [editBody2, setEditBody2] = useState('');
-  const [editBody2Dv, setEditBody2Dv] = useState('');
-  const [editBody3, setEditBody3] = useState('');
-  const [editBody3Dv, setEditBody3Dv] = useState('');
+  const [editParagraphs, setEditParagraphs] = useState<Array<{ dv: string; en: string }>>([
+    { dv: '', en: '' }
+  ]);
   const [editTrending, setEditTrending] = useState(false);
   const [editBreaking, setEditBreaking] = useState(false);
   
@@ -405,8 +409,8 @@ export default function AdminDashboard() {
         author: user.email || 'admin',
         views: 0,
         readingTime,
-        body: [body1Dv, body2Dv, body3Dv].filter(Boolean),
-        bodyEn: [body1, body2, body3].filter(Boolean),
+        body: paragraphs.map(p => p.dv).filter(Boolean),
+        bodyEn: paragraphs.map(p => p.en).filter(Boolean),
         trending,
         breaking,
         createdAt: serverTimestamp(),
@@ -419,12 +423,7 @@ export default function AdminDashboard() {
       setExcerptDv('');
       setImageUrl('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
       setArticleFile(null);
-      setBody1('');
-      setBody1Dv('');
-      setBody2('');
-      setBody2Dv('');
-      setBody3('');
-      setBody3Dv('');
+      setParagraphs([{ dv: '', en: '' }]);
       setTrending(false);
       setBreaking(false);
       loadDashboard();
@@ -493,12 +492,17 @@ export default function AdminDashboard() {
     setEditExcerptDv(article.excerpt || '');
     setEditImageUrl(article.image || '');
     setEditCategory(article.category || '');
-    setEditBody1(article.bodyEn?.[0] || '');
-    setEditBody1Dv(article.body?.[0] || '');
-    setEditBody2(article.bodyEn?.[1] || '');
-    setEditBody2Dv(article.body?.[1] || '');
-    setEditBody3(article.bodyEn?.[2] || '');
-    setEditBody3Dv(article.body?.[2] || '');
+    
+    // Convert body arrays to paragraph objects
+    const bodyDv = article.body || [];
+    const bodyEn = article.bodyEn || [];
+    const maxLength = Math.max(bodyDv.length, bodyEn.length);
+    const paragraphArray = Array.from({ length: maxLength }, (_, i) => ({
+      dv: bodyDv[i] || '',
+      en: bodyEn[i] || ''
+    }));
+    
+    setEditParagraphs(paragraphArray.length > 0 ? paragraphArray : [{ dv: '', en: '' }]);
     setEditTrending(article.trending || false);
     setEditBreaking(article.breaking || false);
   };
@@ -529,8 +533,8 @@ export default function AdminDashboard() {
         excerptEn: editExcerpt,
         image: finalImageUrl,
         category: editCategory,
-        body: [editBody1Dv, editBody2Dv, editBody3Dv].filter(Boolean),
-        bodyEn: [editBody1, editBody2, editBody3].filter(Boolean),
+        body: editParagraphs.map(p => p.dv).filter(Boolean),
+        bodyEn: editParagraphs.map(p => p.en).filter(Boolean),
         trending: editTrending,
         breaking: editBreaking,
       });
@@ -843,63 +847,61 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph1}</label>
-                <textarea
-                  value={body1Dv}
-                  onChange={(e) => setBody1Dv(e.target.value)}
-                  className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                  placeholder={t.paragraph1}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph1En}</label>
-                <textarea
-                  value={body1}
-                  onChange={(e) => setBody1(e.target.value)}
-                  className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                  placeholder={t.paragraph1En}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph2}</label>
-                  <textarea
-                    value={body2Dv}
-                    onChange={(e) => setBody2Dv(e.target.value)}
-                    className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.paragraph2}
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-slate-300">{t.newsContent}</label>
+                  <button
+                    type="button"
+                    onClick={() => setParagraphs([...paragraphs, { dv: '', en: '' }])}
+                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition"
+                  >
+                    + {t.addParagraph}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph2En}</label>
-                  <textarea
-                    value={body2}
-                    onChange={(e) => setBody2(e.target.value)}
-                    className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.paragraph2En}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph3}</label>
-                  <textarea
-                    value={body3Dv}
-                    onChange={(e) => setBody3Dv(e.target.value)}
-                    className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.paragraph3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph3En}</label>
-                  <textarea
-                    value={body3}
-                    onChange={(e) => setBody3(e.target.value)}
-                    className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.paragraph3En}
-                  />
-                </div>
+                {paragraphs.map((para, index) => (
+                  <div key={index} className="mb-4 p-4 border border-slate-700 rounded-2xl bg-slate-950/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-400">{t.paragraph} {index + 1}</span>
+                      {paragraphs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setParagraphs(paragraphs.filter((_, i) => i !== index))}
+                          className="text-xs text-rose-400 hover:text-rose-300 transition"
+                        >
+                          {t.removeParagraph}
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
+                        <textarea
+                          value={para.dv}
+                          onChange={(e) => {
+                            const newParagraphs = [...paragraphs];
+                            newParagraphs[index].dv = e.target.value;
+                            setParagraphs(newParagraphs);
+                          }}
+                          className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                          placeholder={t.paragraphDv}
+                          required={index === 0}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
+                        <textarea
+                          value={para.en}
+                          onChange={(e) => {
+                            const newParagraphs = [...paragraphs];
+                            newParagraphs[index].en = e.target.value;
+                            setParagraphs(newParagraphs);
+                          }}
+                          className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                          placeholder={t.paragraphEn}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="flex gap-4">
                 <label className="inline-flex items-center gap-2 text-slate-300">
@@ -1247,63 +1249,61 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph1}</label>
-                  <textarea
-                    value={editBody1Dv}
-                    onChange={(e) => setEditBody1Dv(e.target.value)}
-                    className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.paragraph1}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph1En}</label>
-                  <textarea
-                    value={editBody1}
-                    onChange={(e) => setEditBody1(e.target.value)}
-                    className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.paragraph1En}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph2}</label>
-                    <textarea
-                      value={editBody2Dv}
-                      onChange={(e) => setEditBody2Dv(e.target.value)}
-                      className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                      placeholder={t.paragraph2}
-                    />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold text-slate-300">{t.newsContent}</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditParagraphs([...editParagraphs, { dv: '', en: '' }])}
+                      className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition"
+                    >
+                      + {t.addParagraph}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph2En}</label>
-                    <textarea
-                      value={editBody2}
-                      onChange={(e) => setEditBody2(e.target.value)}
-                      className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                      placeholder={t.paragraph2En}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph3}</label>
-                    <textarea
-                      value={editBody3Dv}
-                      onChange={(e) => setEditBody3Dv(e.target.value)}
-                      className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                      placeholder={t.paragraph3}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">{t.paragraph3En}</label>
-                    <textarea
-                      value={editBody3}
-                      onChange={(e) => setEditBody3(e.target.value)}
-                      className="min-h-[100px] w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                      placeholder={t.paragraph3En}
-                    />
-                  </div>
+                  {editParagraphs.map((para, index) => (
+                    <div key={index} className="mb-4 p-4 border border-slate-700 rounded-2xl bg-slate-950/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-slate-400">{t.paragraph} {index + 1}</span>
+                        {editParagraphs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setEditParagraphs(editParagraphs.filter((_, i) => i !== index))}
+                            className="text-xs text-rose-400 hover:text-rose-300 transition"
+                          >
+                            {t.removeParagraph}
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
+                          <textarea
+                            value={para.dv}
+                            onChange={(e) => {
+                              const newParagraphs = [...editParagraphs];
+                              newParagraphs[index].dv = e.target.value;
+                              setEditParagraphs(newParagraphs);
+                            }}
+                            className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                            placeholder={t.paragraphDv}
+                            required={index === 0}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
+                          <textarea
+                            value={para.en}
+                            onChange={(e) => {
+                              const newParagraphs = [...editParagraphs];
+                              newParagraphs[index].en = e.target.value;
+                              setEditParagraphs(newParagraphs);
+                            }}
+                            className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                            placeholder={t.paragraphEn}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="flex gap-4">
                   <label className="inline-flex items-center gap-2 text-slate-300">

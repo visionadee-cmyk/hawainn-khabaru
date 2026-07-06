@@ -35,20 +35,19 @@ app.post('/api/facebook/post', async (req, res) => {
 
     let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
 
-    // If image URL is provided, post as photo with link
+    // If image URL is provided, post as photo with article URL in caption
     if (imageUrl) {
       endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
+      // Include article URL in caption for clickable link
+      const captionWithLink = articleUrl 
+        ? `${message}\n\nRead more: ${articleUrl}`
+        : message;
       requestBody = {
         url: imageUrl,
-        caption: message,
+        caption: captionWithLink,
         access_token: accessToken,
         published: 'true',
       };
-      
-      // Add link to article as a comment or attachment
-      if (articleUrl) {
-        requestBody.link = articleUrl;
-      }
     } else if (articleUrl) {
       // If no image but has article URL, post as link
       requestBody.link = articleUrl;
