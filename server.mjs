@@ -15,7 +15,7 @@ app.post('/api/facebook/post', async (req, res) => {
   const pageId = process.env.FACEBOOK_PAGE_ID;
   const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
-  console.log('Facebook Post Request:', { title, excerpt, pageId, hasToken: !!accessToken });
+  console.log('Facebook Post Request:', { title, excerpt, imageUrl, articleUrl, pageId, hasToken: !!accessToken });
 
   if (!pageId || !accessToken) {
     return res.status(500).json({
@@ -27,18 +27,34 @@ app.post('/api/facebook/post', async (req, res) => {
   const message = [title, excerpt].filter(Boolean).join('\n\n').trim();
 
   try {
-    const requestBody = {
+    let requestBody = {
       message,
       access_token: accessToken,
       published: 'true',
     };
 
-    // Add link if provided (Facebook will scrape the image from the page)
-    if (articleUrl) {
+    let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
+
+    // If image URL is provided, post as photo with link
+    if (imageUrl) {
+      endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
+      requestBody = {
+        url: imageUrl,
+        caption: message,
+        access_token: accessToken,
+        published: 'true',
+      };
+      
+      // Add link to article as a comment or attachment
+      if (articleUrl) {
+        requestBody.link = articleUrl;
+      }
+    } else if (articleUrl) {
+      // If no image but has article URL, post as link
       requestBody.link = articleUrl;
     }
 
-    const response = await fetch(`https://graph.facebook.com/v20.0/${pageId}/feed`, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
