@@ -70,24 +70,21 @@ export default async function handler(req, res) {
 
     let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
 
-    // If article URL provided, use it for both link and picture
-    // Facebook will extract the image from our og:image meta tag
+    // Post with link to article - Facebook will auto-scrape image from og:image
+    // Do NOT specify picture parameter (causes permission error)
     if (articleUrl) {
       requestBody = {
         message: message,
         link: articleUrl,
-        picture: articleUrl, // Article page is on our domain, so this is allowed
         access_token: accessToken,
         published: 'true',
-        privacy: '{"value":"EVERYONE"}',
       };
     } else {
-      // Fallback: post without image if no article URL
+      // Fallback: post text only if no article URL
       requestBody = {
         message: message,
         access_token: accessToken,
         published: 'true',
-        privacy: '{"value":"EVERYONE"}',
       };
     }
 
