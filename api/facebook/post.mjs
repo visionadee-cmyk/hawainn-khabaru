@@ -70,20 +70,35 @@ export default async function handler(req, res) {
 
     let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
 
-    // If image URL is provided, post as feed post with attached image
-    if (imageUrl) {
-      const messageWithLink = articleUrl 
-        ? `${message}\n\nRead more: ${articleUrl}`
-        : message;
+    // Build request with image and link pointing to article
+    if (imageUrl && articleUrl) {
+      // Post with both image and article link
       requestBody = {
-        message: messageWithLink,
-        link: imageUrl,
+        message: message,
+        link: articleUrl,
+        picture: imageUrl,
         access_token: accessToken,
         published: 'true',
         privacy: '{"value":"EVERYONE"}',
       };
     } else if (articleUrl) {
-      requestBody.link = articleUrl;
+      // Post with article link only
+      requestBody = {
+        message: message,
+        link: articleUrl,
+        access_token: accessToken,
+        published: 'true',
+        privacy: '{"value":"EVERYONE"}',
+      };
+    } else if (imageUrl) {
+      // Post with image only (no link)
+      requestBody = {
+        message: message,
+        picture: imageUrl,
+        access_token: accessToken,
+        published: 'true',
+        privacy: '{"value":"EVERYONE"}',
+      };
     }
 
     const response = await fetch(endpoint, {
