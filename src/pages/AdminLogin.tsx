@@ -5,8 +5,8 @@ import { onAuthStateChanged, signInWithEmailAndPassword, User } from 'firebase/a
 import { auth } from '../firebase';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('hawainnkhabaru@gmail.com');
-  const [password, setPassword] = useState('Adhu1447');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
