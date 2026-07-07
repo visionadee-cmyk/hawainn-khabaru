@@ -102,7 +102,11 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.json({ success: true, postId: data.id });
+    return res.json({
+      success: true,
+      postId: data.id,
+      facebookUrl: `https://facebook.com/${data.id}`,
+    });
   } catch (error) {
     console.error('Facebook API Error:', error);
     return res.status(500).json({

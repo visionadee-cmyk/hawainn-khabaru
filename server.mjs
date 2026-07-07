@@ -159,7 +159,7 @@ app.post('/api/facebook/post', async (req, res) => {
         url: imageUrl,
         caption: messageWithLink,
         access_token: accessToken,
-        published: 'true',
+        published: true,
       };
     } else {
       // If no image, use feed endpoint
@@ -167,7 +167,7 @@ app.post('/api/facebook/post', async (req, res) => {
       requestBody = {
         message: messageWithLink,
         access_token: accessToken,
-        published: 'true',
+        published: true,
         link: articleUrl,
       };
     }
@@ -191,7 +191,11 @@ app.post('/api/facebook/post', async (req, res) => {
     }
 
     // Photos endpoint returns {id: "postId"} while feed returns {id: "postId"}
-    return res.json({ success: true, postId: data.id });
+    return res.json({
+      success: true,
+      postId: data.id,
+      facebookUrl: `https://facebook.com/${data.id}`,
+    });
   } catch (error) {
     console.error('Facebook API Error:', error);
     return res.status(500).json({
