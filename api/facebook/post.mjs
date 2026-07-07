@@ -65,22 +65,16 @@ export default async function handler(req, res) {
     let requestBody = {
       message,
       access_token: accessToken,
-      published: 'true',
     };
 
     if (articleUrl) {
       requestBody.link = articleUrl;
-      if (imageUrl) {
-        requestBody.picture = imageUrl;
-      }
     } else if (imageUrl) {
-      // If there is no article URL, publish a photo post instead.
       endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
       requestBody = {
         url: imageUrl,
         message,
         access_token: accessToken,
-        published: 'true',
       };
     }
 
