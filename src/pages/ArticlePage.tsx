@@ -303,8 +303,8 @@ export default function ArticlePage() {
                 <span>{article.author}</span>
                 <span>{article.readingTime}</span>
               </div>
-              <h1 className="mt-4 mb-6 text-2xl font-bold leading-[2.5] text-slate-900 sm:text-3xl">{article.title}</h1>
-              <p className="text-sm leading-7 text-slate-600">{article.excerpt}</p>
+              <h1 className="mt-4 mb-6 text-2xl font-bold leading-[2.5] text-white lg:text-slate-900 sm:text-3xl">{article.title}</h1>
+              <p className="text-sm leading-7 text-white lg:text-slate-600">{article.excerpt}</p>
             </div>
             <div className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-soft">
               {article.body.map((paragraph, index) => (
