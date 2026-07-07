@@ -70,20 +70,15 @@ export default async function handler(req, res) {
 
     let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
 
-    // Post article with link and optional featured image
+    // Post article with link - let Facebook scrape og:image from article page
     if (articleUrl) {
       requestBody = {
         message: message,
         link: articleUrl,
-        picture: imageUrl || undefined,
         access_token: accessToken,
         published: 'true',
         privacy: '{"value":"EVERYONE"}',
       };
-      // Remove undefined picture parameter if no imageUrl
-      if (!imageUrl) {
-        delete requestBody.picture;
-      }
     }
 
     const response = await fetch(endpoint, {
