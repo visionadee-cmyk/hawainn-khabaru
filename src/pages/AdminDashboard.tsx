@@ -122,6 +122,7 @@ export default function AdminDashboard() {
       bannerSize: 'Banner Size',
       bannerPosition: 'Banner Position',
       positionTop: 'Top',
+      positionMiddle: 'Middle',
       positionBottom: 'Bottom',
       locationHome: 'Home Page',
       locationArticle: 'Article Page',
@@ -229,6 +230,7 @@ export default function AdminDashboard() {
       bannerSize: 'ބެނަރު ސައިޒް',
       bannerPosition: 'ބެނަރު ހުސްކަން',
       positionTop: 'މައްޗު',
+      positionMiddle: 'މެދު',
       positionBottom: 'ތިރީ',
       locationHome: 'މައި ޞަފްޙާ',
       locationArticle: 'ޚަބަރު ޞަފްޙާ',
@@ -281,7 +283,7 @@ export default function AdminDashboard() {
   const [bannerTitle, setBannerTitle] = useState('');
   const [bannerSubtitle, setBannerSubtitle] = useState('');
   const [bannerLocation, setBannerLocation] = useState<'home' | 'article' | 'category'>('home');
-  const [bannerPosition, setBannerPosition] = useState<'top' | 'bottom'>('top');
+  const [bannerPosition, setBannerPosition] = useState<'top' | 'middle' | 'bottom'>('top');
   const [bannerSize, setBannerSize] = useState<'mobile' | 'desktop' | 'both'>('both');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [bannerError, setBannerError] = useState('');
@@ -1018,11 +1020,12 @@ export default function AdminDashboard() {
                   <label className="block text-sm font-semibold text-slate-300">{t.bannerPosition}</label>
                   <select
                     value={bannerPosition}
-                    onChange={(e) => setBannerPosition(e.target.value as 'top' | 'bottom')}
+                    onChange={(e) => setBannerPosition(e.target.value as 'top' | 'middle' | 'bottom')}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                     required
                   >
                     <option value="top">{t.positionTop}</option>
+                    <option value="middle">{t.positionMiddle}</option>
                     <option value="bottom">{t.positionBottom}</option>
                   </select>
                 </div>

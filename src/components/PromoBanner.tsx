@@ -5,7 +5,7 @@ import { db } from '../firebase';
 
 interface PromoBannerProps {
   location?: 'home' | 'article' | 'category';
-  position?: 'top' | 'bottom';
+  position?: 'top' | 'middle' | 'bottom';
 }
 
 interface BannerData {
@@ -14,7 +14,7 @@ interface BannerData {
   subtitle?: string;
   image: string;
   location: 'home' | 'article' | 'category';
-  position: 'top' | 'bottom';
+  position: 'top' | 'middle' | 'bottom';
   size: 'mobile' | 'desktop' | 'both';
 }
 
@@ -72,7 +72,7 @@ export default function PromoBanner({ location = 'home', position = 'top' }: Pro
   const currentBanner = banners[currentIndex];
 
   return (
-    <div className="relative w-full overflow-hidden bg-slate-900">
+    <div className="relative w-full h-32 overflow-hidden bg-slate-900">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
@@ -80,12 +80,12 @@ export default function PromoBanner({ location = 'home', position = 'top' }: Pro
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -100 }}
           transition={{ duration: 0.5 }}
-          className="relative w-full"
+          className="relative w-full h-full"
         >
           <picture>
             <source media="(min-width: 768px)" srcSet={currentBanner.image} />
-            <img 
-              src={currentBanner.image} 
+            <img
+              src={currentBanner.image}
               alt={currentBanner.title}
               className="w-full h-full object-contain"
               style={{ objectPosition: 'center' }}

@@ -19,6 +19,7 @@ const categories = [
   { id: 'world', title: 'ދުނިޔެ', color: 'bg-rose-500' },
   { id: 'entertainment', title: 'މަޖާ', color: 'bg-indigo-500' },
   { id: 'health', title: 'ސިއްޙަތު', color: 'bg-lime-500' },
+  { id: 'education', title: 'ތަޢުލީމް', color: 'bg-orange-500' },
 ];
 
 export default function MobileNav({ theme, setTheme, language, setLanguage }: MobileNavProps) {

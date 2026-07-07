@@ -253,7 +253,7 @@ export default function ArticlePage() {
         <meta name="twitter:image" content={article?.image} />
       </Helmet>
       <PromoBanner location="article" position="top" />
-      <motion.section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:p-8">
+      <motion.section className="lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-soft sm:p-8">
         <button
           className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
           onClick={() => navigate(-1)}
@@ -280,7 +280,7 @@ export default function ArticlePage() {
                 <p key={index} className="text-base leading-8 text-slate-700">{paragraph}</p>
               ))}
             </div>
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-soft sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
                 <button 
                   onClick={() => handleReaction('like')}

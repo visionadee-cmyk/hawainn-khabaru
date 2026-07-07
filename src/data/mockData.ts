@@ -31,6 +31,7 @@ export const categories: Category[] = [
   { id: 'entertainment', title: 'މަޖާ', titleEn: 'Entertainment', color: 'bg-indigo-500' },
   { id: 'health', title: 'ސިއްޙަތު', titleEn: 'Health', color: 'bg-lime-500' },
   { id: 'life', title: 'ދިރިއުޅުން', titleEn: 'Life', color: 'bg-teal-500' },
+  { id: 'education', title: 'ތަޢުލީމް', titleEn: 'Education', color: 'bg-orange-500' },
 ];
 
 export const articles: Article[] = [

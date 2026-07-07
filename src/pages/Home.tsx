@@ -35,7 +35,6 @@ export default function Home() {
   const heroArticles = articlesState.slice(0, 3);
   const trending = useMemo(() => articlesState.filter((article) => article.trending), [articlesState]);
   const latest = useMemo(() => articlesState.slice(0, 8), [articlesState]);
-  const videoItems = useMemo(() => articlesState.filter((article) => article.videoUrl || article.category === 'technology'), [articlesState]);
 
   if (loading) {
     return (
@@ -87,9 +86,9 @@ export default function Home() {
       </section>
 
       {/* Main News Section */}
-      <section className="grid gap-8 lg:grid-cols-3">
+      <section className="grid gap-8 lg:grid-cols-3 lg:items-start">
         {/* Main story large */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 flex flex-col">
           <div className="rounded-2xl border border-slate-200 bg-white p-0 shadow-soft overflow-hidden relative">
             <img src={activeHero.image} alt={activeHero.title} className="w-full h-96 object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -117,10 +116,10 @@ export default function Home() {
           </div>
         </div>
         {/* Sidebar */}
-        <aside className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <aside className="hidden lg:block lg:h-[384px]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft h-full">
             <h3 className="text-lg font-semibold text-slate-900">ޚާއްސަ ބައިތައް</h3>
-            <div className="mt-5 grid gap-4">
+            <div className="mt-5 grid grid-cols-3 gap-4">
               {categories.slice(4).map((category) => (
                 <div key={category.id} className={`rounded-3xl border border-slate-200 px-4 py-4 ${category.color} bg-opacity-10`}>
                   <p className="text-sm font-semibold text-slate-900">{category.title}</p>
@@ -129,25 +128,14 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
-            <h3 className="text-lg font-semibold text-slate-900">ވީޑިއޯ ޚަބަރު</h3>
-            <div className="mt-5 space-y-4">
-              {videoItems.slice(0, 2).map((video) => (
-                <Link key={video.id} to={`/article/${video.id}`} className="block overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-400/40">
-                  <div className="mb-3 rounded-2xl overflow-hidden bg-slate-100">
-                    <img src={video.image} alt={video.title} className="h-40 w-full object-cover" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-900">{video.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">{video.excerpt}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
         </aside>
       </section>
 
+      {/* Middle Promo Banner */}
+      <PromoBanner location="home" position="middle" />
+
       {/* Latest Articles Grid */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft lg:p-8">
+      <section className="lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-soft lg:p-8">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-sky-600">ސުރުޚީ</p>
