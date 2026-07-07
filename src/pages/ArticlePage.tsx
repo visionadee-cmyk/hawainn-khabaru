@@ -268,6 +268,14 @@ export default function ArticlePage() {
     }
   };
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="space-y-8 text-right">
       <Helmet>
@@ -287,7 +295,7 @@ export default function ArticlePage() {
       <motion.section className="lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-soft sm:p-8">
         <button
           className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
-          onClick={() => navigate(-1)}
+          onClick={handleGoBack}
         >
           ← ފަހަތަށް
         </button>
