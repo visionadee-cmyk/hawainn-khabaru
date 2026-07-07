@@ -4,8 +4,29 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 dotenv.config();
+
+// Initialize Firebase Admin
+let db;
+try {
+  const serviceAccountPath = path.join(__dirname, 'firebase-service-account.json');
+  if (fs.existsSync(serviceAccountPath)) {
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    if (!getApps().length) {
+      initializeApp({
+        credential: cert(serviceAccount),
+      });
+    }
+    db = getFirestore();
+  } else {
+    console.warn('Firebase service account file not found. Visitors endpoint will not work.');
+  }
+} catch (error) {
+  console.error('Error initializing Firebase Admin:', error);
+}
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -67,6 +88,36 @@ const getValidPageAccessToken = async (currentToken) => {
 app.use(cors());
 app.use(express.json());
 
+// Visitors endpoint
+app.get('/api/visitors', async (req, res) => {
+  if (!db) {
+    return res.status(500).json({
+      success: false,
+      error: 'Firebase Admin not initialized. Service account file missing.',
+    });
+  }
+
+  try {
+    const visitorsSnapshot = await db.collection('visitors')
+      .orderBy('timestamp', 'desc')
+      .limit(1000)
+      .get();
+
+    const visitors = visitorsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return res.json({ success: true, visitors });
+  } catch (error) {
+    console.error('Error fetching visitors:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch visitors',
+    });
+  }
+});
+
 app.post('/api/facebook/refresh-token', async (_req, res) => {
   const refreshedToken = await getValidPageAccessToken(process.env.FACEBOOK_PAGE_ACCESS_TOKEN);
 
@@ -95,33 +146,30 @@ app.post('/api/facebook/post', async (req, res) => {
   }
 
   const message = [title, excerpt].filter(Boolean).join('\n\n').trim();
+  const messageWithLink = articleUrl ? `${message}\n\nRead more: ${articleUrl}` : message;
 
   try {
-    let requestBody = {
-      message,
-      access_token: accessToken,
-      published: 'true',
-      privacy: '{"value":"EVERYONE"}',
-    };
+    let endpoint;
+    let requestBody;
 
-    let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
-
-    // If image URL is provided, post as feed post with attached image
+    // If image URL is provided, use photos endpoint for better visibility
     if (imageUrl) {
-      // Use feed endpoint with attached image for better visibility
-      const messageWithLink = articleUrl 
-        ? `${message}\n\nRead more: ${articleUrl}`
-        : message;
+      endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
       requestBody = {
-        message: messageWithLink,
-        link: imageUrl,
+        url: imageUrl,
+        caption: messageWithLink,
         access_token: accessToken,
         published: 'true',
-        privacy: '{"value":"EVERYONE"}',
       };
-    } else if (articleUrl) {
-      // If no image but has article URL, post as link
-      requestBody.link = articleUrl;
+    } else {
+      // If no image, use feed endpoint
+      endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
+      requestBody = {
+        message: messageWithLink,
+        access_token: accessToken,
+        published: 'true',
+        link: articleUrl,
+      };
     }
 
     const response = await fetch(endpoint, {
@@ -142,6 +190,7 @@ app.post('/api/facebook/post', async (req, res) => {
       });
     }
 
+    // Photos endpoint returns {id: "postId"} while feed returns {id: "postId"}
     return res.json({ success: true, postId: data.id });
   } catch (error) {
     console.error('Facebook API Error:', error);

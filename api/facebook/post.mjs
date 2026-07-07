@@ -66,24 +66,21 @@ export default async function handler(req, res) {
       message,
       access_token: accessToken,
       published: 'true',
-      privacy: '{"value":"EVERYONE"}',
     };
 
-    // If an image URL exists, publish a photo post so the image appears directly.
-    // The article link is included in the caption instead of relying on og:image scraping.
-    if (imageUrl) {
+    if (articleUrl) {
+      requestBody.link = articleUrl;
+      if (imageUrl) {
+        requestBody.picture = imageUrl;
+      }
+    } else if (imageUrl) {
+      // If there is no article URL, publish a photo post instead.
       endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
       requestBody = {
         url: imageUrl,
-        message: [message, articleUrl ? `Read more: ${articleUrl}` : ''].filter(Boolean).join('\n\n'),
+        message,
         access_token: accessToken,
         published: 'true',
-      };
-    } else if (articleUrl) {
-      // Fallback to a regular link post when no image URL is available.
-      requestBody = {
-        message,
-        privacy: '{"value":"EVERYONE"}',
       };
     }
 
