@@ -29,6 +29,7 @@ export default function ArticlePage() {
   const [article, setArticle] = useState<Article | null | undefined>(undefined);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
@@ -101,6 +102,7 @@ export default function ArticlePage() {
         }
       } catch (error) {
         console.error('Error fetching article:', error);
+        setError(error instanceof Error ? error.message : 'Unable to load article.');
         setArticle(null);
       } finally {
         setLoading(false);
@@ -114,6 +116,16 @@ export default function ArticlePage() {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft text-right">
         <h2 className="text-2xl font-semibold text-slate-900">ލޯޑް ވަނީ...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 shadow-soft text-right">
+        <h2 className="text-2xl font-semibold text-rose-700">ސިސްޓަމް އޮތް އިންޓަރނެޓް ޑިސްޓރިބިއުޝަން އެރަރ</h2>
+        <p className="mt-4 text-rose-700">{error}</p>
+        <p className="mt-2 text-sm text-rose-600">ތިބާ ކޮންމެ ސުވާލަކަށް ތައާރަފް ކޮށްލާ.</p>
       </div>
     );
   }
