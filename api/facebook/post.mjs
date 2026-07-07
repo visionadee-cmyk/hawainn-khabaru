@@ -61,6 +61,7 @@ export default async function handler(req, res) {
   const message = [title, excerpt].filter(Boolean).join('\n\n').trim();
 
   try {
+    let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
     let requestBody = {
       message,
       access_token: accessToken,
@@ -68,15 +69,20 @@ export default async function handler(req, res) {
       privacy: '{"value":"EVERYONE"}',
     };
 
-    let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
-
-    // Post article with link - let Facebook scrape og:image from article page
-    if (articleUrl) {
+    // If an image URL exists, publish a photo post so the image appears directly.
+    // The article link is included in the caption instead of relying on og:image scraping.
+    if (imageUrl) {
+      endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
       requestBody = {
-        message: message,
-        link: articleUrl,
+        url: imageUrl,
+        message: [message, articleUrl ? `Read more: ${articleUrl}` : ''].filter(Boolean).join('\n\n'),
         access_token: accessToken,
         published: 'true',
+      };
+    } else if (articleUrl) {
+      // Fallback to a regular link post when no image URL is available.
+      requestBody = {
+        message,
         privacy: '{"value":"EVERYONE"}',
       };
     }
