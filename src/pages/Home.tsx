@@ -68,16 +68,16 @@ export default function Home() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft lg:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 text-right">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-sky-600">ހުރިހާ ބައިތައް</p>
+            <p className="text-xs lg:text-4xl uppercase tracking-[0.2em] text-sky-600">ހުރިހާ ބައިތައް</p>
           </div>
-          <Link to="/categories" className="text-xs text-sky-700 transition hover:text-sky-900">އިތުރަށް ބަލާ</Link>
+          <Link to="/categories" className="text-xs lg:text-2xl text-sky-700 transition hover:text-sky-900">އިތުރަށް ބަލާ</Link>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-4">
           {categories.map((category) => (
             <Link 
               key={category.id} 
               to={`/categories/${category.id}`}
-              className="cursor-pointer rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900"
+              className="cursor-pointer rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs lg:text-lg text-slate-700 transition hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900"
             >
               {category.title}
             </Link>

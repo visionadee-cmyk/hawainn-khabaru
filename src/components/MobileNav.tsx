@@ -97,7 +97,7 @@ export default function MobileNav({ theme, setTheme, language, setLanguage }: Mo
                   onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
                   className="text-xs font-semibold text-sky-400 transition hover:text-sky-300"
                 >
-                  {language === 'en' ? 'DV' : 'EN'}
+                  {language === 'en' ? '🇲🇻' : '🇬🇧'}
                 </button>
               </div>
               

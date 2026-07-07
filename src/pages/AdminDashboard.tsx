@@ -20,6 +20,8 @@ export default function AdminDashboard() {
   const [uniqueVisitors, setUniqueVisitors] = useState(0);
   const [facebookInsights, setFacebookInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [visitorLoading, setVisitorLoading] = useState(false);
+  const [visitorError, setVisitorError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>('articles');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [language, setLanguage] = useState<'en' | 'dv'>('dv');
@@ -341,23 +343,44 @@ export default function AdminDashboard() {
     }
   };
 
-  // Real-time visitor tracking
-  useEffect(() => {
-    if (!user) return;
+  const loadVisitorDetails = async () => {
+    if (!auth.currentUser) return;
 
-    const visitorQuery = query(collection(db, 'visitors'), orderBy('timestamp', 'desc'), limit(1000));
-    const unsubscribe = onSnapshot(visitorQuery, (snapshot) => {
-      const visitors = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
+    setVisitorLoading(true);
+    setVisitorError(null);
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch('/api/visitors', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load visitors');
+      }
+
+      const visitors = Array.isArray(data.visitors) ? data.visitors : [];
       setVisitorDetails(visitors);
-
-      // Calculate unique visitors based on user agent (as a proxy for unique users)
       const uniqueUserAgents = new Set(visitors.map((item: any) => item.userAgent)).size;
       setUniqueVisitors(uniqueUserAgents);
-    }, (error) => {
+    } catch (error) {
       console.error('Error fetching visitors:', error);
-    });
+      setVisitorError(error instanceof Error ? error.message : String(error));
+      setVisitorDetails([]);
+      setUniqueVisitors(0);
+    } finally {
+      setVisitorLoading(false);
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    if (!user) return;
+    loadVisitorDetails();
   }, [user]);
 
   // Load Facebook insights

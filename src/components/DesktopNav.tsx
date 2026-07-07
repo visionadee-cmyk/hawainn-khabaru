@@ -17,17 +17,17 @@ export default function DesktopNav({ theme, setTheme, language, setLanguage }: D
           <img src="/logo.png" alt="Hawainn Khabaru" className="h-12 w-12 object-contain" />
         </div>
         {/* Center navigation links */}
-        <nav className="flex-1 flex justify-center">
-          <ul className="flex gap-8 text-lg font-semibold text-slate-700">
-            <li><Link to="/" className="transition hover:text-sky-600 hover:scale-105">މައި ޞަފްޙާ</Link></li>
-            <li><Link to="/categories" className="transition hover:text-sky-600 hover:scale-105">ބައިތައް</Link></li>
-            <li><Link to="/videos" className="transition hover:text-sky-600 hover:scale-105">ވީޑިއޯތައް</Link></li>
-            <li><Link to="/notifications" className="transition hover:text-sky-600 hover:scale-105">ނޮޓިފިކޭޝަންތައް</Link></li>
-            <li><Link to="/profile" className="transition hover:text-sky-600 hover:scale-105">ޕްރޮފައިލް</Link></li>
+        <nav className="flex-1 flex justify-start">
+          <ul className="flex flex-wrap items-center justify-start gap-3 rounded-full bg-white/90 px-4 py-2 text-lg font-semibold text-slate-800 shadow-soft ring-1 ring-slate-200/80 backdrop-blur-sm">
+            <li><Link to="/" className="rounded-full px-4 py-2 transition duration-200 hover:bg-slate-100 hover:text-sky-600">މައި ޞަފްޙާ</Link></li>
+            <li><Link to="/categories" className="rounded-full px-4 py-2 transition duration-200 hover:bg-slate-100 hover:text-sky-600">ބައިތައް</Link></li>
+            <li><Link to="/videos" className="rounded-full px-4 py-2 transition duration-200 hover:bg-slate-100 hover:text-sky-600">ވީޑިއޯތައް</Link></li>
+            <li><Link to="/notifications" className="rounded-full px-4 py-2 transition duration-200 hover:bg-slate-100 hover:text-sky-600">ނޮޓިފިކޭޝަންތައް</Link></li>
+            <li><Link to="/profile" className="rounded-full px-4 py-2 transition duration-200 hover:bg-slate-100 hover:text-sky-600">ޕްރޮފައިލް</Link></li>
           </ul>
         </nav>
         {/* Logo on the right */}
-        <Link to="/" className="group inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft lg:p-8 text-xl font-black uppercase tracking-[0.2em] text-slate-900 transition hover:border-slate-300">
+        <Link to="/" className="group inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft text-xl lg:text-2xl font-black uppercase tracking-[0.2em] text-slate-900 transition hover:border-slate-300">
           <img src="/logo.png" alt="Hawainn Khabaru logo" className="h-12 w-12 rounded-3xl object-cover" />
           <div className="hidden xl:block">
             <p className="text-xs text-slate-400">Hawainn Khabaru</p>
