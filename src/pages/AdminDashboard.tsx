@@ -341,23 +341,44 @@ export default function AdminDashboard() {
     }
   };
 
-  // Real-time visitor tracking
+  // Load visitor tracking data from secure backend
   useEffect(() => {
     if (!user) return;
 
-    const visitorQuery = query(collection(db, 'visitors'), orderBy('timestamp', 'desc'), limit(1000));
-    const unsubscribe = onSnapshot(visitorQuery, (snapshot) => {
-      const visitors = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
-      setVisitorDetails(visitors);
+    let isMounted = true;
 
-      // Calculate unique visitors based on user agent (as a proxy for unique users)
-      const uniqueUserAgents = new Set(visitors.map((item: any) => item.userAgent)).size;
-      setUniqueVisitors(uniqueUserAgents);
-    }, (error) => {
-      console.error('Error fetching visitors:', error);
-    });
+    const fetchVisitorDetails = async () => {
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/visitors', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-    return () => unsubscribe();
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to fetch visitors');
+        }
+
+        if (!isMounted) return;
+
+        const visitors = Array.isArray(data.visitors) ? data.visitors : [];
+        setVisitorDetails(visitors);
+
+        const uniqueUserAgents = new Set(visitors.map((item: any) => item.userAgent)).size;
+        setUniqueVisitors(uniqueUserAgents);
+      } catch (error) {
+        console.error('Error fetching visitors:', error);
+      }
+    };
+
+    fetchVisitorDetails();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   // Load Facebook insights

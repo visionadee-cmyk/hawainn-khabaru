@@ -67,14 +67,20 @@ export default async function handler(req, res) {
       access_token: accessToken,
     };
 
-    if (articleUrl) {
-      requestBody.link = articleUrl;
-    } else if (imageUrl) {
+    const messageWithLink = articleUrl ? `${message}\n\nRead more: ${articleUrl}` : message;
+
+    if (imageUrl) {
       endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
       requestBody = {
         url: imageUrl,
-        message,
+        caption: messageWithLink,
         access_token: accessToken,
+      };
+    } else if (articleUrl) {
+      requestBody = {
+        message: messageWithLink,
+        access_token: accessToken,
+        link: articleUrl,
       };
     }
 
