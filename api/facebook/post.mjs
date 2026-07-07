@@ -70,19 +70,8 @@ export default async function handler(req, res) {
 
     let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
 
-    // Build request with image and link pointing to article
-    if (imageUrl && articleUrl) {
-      // Post with both image and article link
-      requestBody = {
-        message: message,
-        link: articleUrl,
-        picture: imageUrl,
-        access_token: accessToken,
-        published: 'true',
-        privacy: '{"value":"EVERYONE"}',
-      };
-    } else if (articleUrl) {
-      // Post with article link only
+    // If article URL provided, post with link (Facebook will auto-scrape image from og:image meta tag)
+    if (articleUrl) {
       requestBody = {
         message: message,
         link: articleUrl,
@@ -90,11 +79,10 @@ export default async function handler(req, res) {
         published: 'true',
         privacy: '{"value":"EVERYONE"}',
       };
-    } else if (imageUrl) {
-      // Post with image only (no link)
+    } else {
+      // Fallback: post without image if no article URL
       requestBody = {
         message: message,
-        picture: imageUrl,
         access_token: accessToken,
         published: 'true',
         privacy: '{"value":"EVERYONE"}',
