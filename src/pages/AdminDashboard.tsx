@@ -793,8 +793,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const visitorCount = visitorDetails.length;
-  const topVisitors = visitorDetails.slice(0, 8);
+  const visitorCount = visitorDetails?.length ?? 0;
+  const topVisitors = Array.isArray(visitorDetails) ? visitorDetails.slice(0, 8) : [];
 
   if (user === undefined) {
     return (

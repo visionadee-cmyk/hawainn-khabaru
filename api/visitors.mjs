@@ -8,9 +8,9 @@ const initializeFirebaseAdmin = () => {
 
   let serviceAccountKey = serviceAccountKeyRaw?.trim();
   if (serviceAccountKey?.startsWith("'") && serviceAccountKey.endsWith("'")) {
-    serviceAccountKey = serviceAccountKey.slice(1, -1);
+    serviceAccountKey = serviceAccountKey.slice(1, -1).trim();
   } else if (serviceAccountKey?.startsWith('"') && serviceAccountKey.endsWith('"')) {
-    serviceAccountKey = serviceAccountKey.slice(1, -1);
+    serviceAccountKey = serviceAccountKey.slice(1, -1).trim();
   }
 
   if (!projectId) {
@@ -19,10 +19,16 @@ const initializeFirebaseAdmin = () => {
 
   const credentials = serviceAccountKey
     ? (() => {
+        const normalizedKey = serviceAccountKey
+          .replace(/\\n/g, '\n')
+          .replace(/\r\n/g, '\n')
+          .trim();
+
         try {
-          return admin.credential.cert(JSON.parse(serviceAccountKey));
+          return admin.credential.cert(JSON.parse(normalizedKey));
         } catch (error) {
           console.error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON:', error);
+          console.error('Raw service account key preview:', normalizedKey?.slice(0, 60));
           throw new Error('Invalid Firebase service account key configuration.');
         }
       })()
