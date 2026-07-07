@@ -1,10 +1,25 @@
 import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import PromoBanner from '../components/PromoBanner';
 import { categories } from '../data/mockData';
+
+const getRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'އަންނަވަނީ';
+  if (diffMins < 60) return `${diffMins} މިނިޓު ކުރިން`;
+  if (diffHours < 24) return `${diffHours} ގަޑިއިރު ކުރިން`;
+  if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
+  return dateString;
+};
 
 export default function Categories() {
   const { categoryId } = useParams();
@@ -24,7 +39,10 @@ export default function Categories() {
           limit(20)
         );
         const snapshot = await getDocs(articlesQuery);
-        const articlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const articlesData = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        }));
         setArticles(articlesData);
       } catch (error) {
         console.error('Error fetching articles:', error);
@@ -41,7 +59,7 @@ export default function Categories() {
   return (
     <motion.section className="space-y-4 text-right" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       <div className="hidden lg:block">
-        <PromoBanner location="category" />
+        <PromoBanner location="category" position="top" />
       </div>
       <div className="hidden lg:block">
         {categoryId && selectedCategory ? (
@@ -66,7 +84,7 @@ export default function Categories() {
                   >
                     <h3 className="text-base font-semibold text-slate-900">{article.title}</h3>
                     <p className="mt-1 text-xs text-slate-600">{article.excerpt}</p>
-                    <p className="mt-1 text-[10px] text-slate-500">{article.publishedAt}</p>
+                    <p className="mt-1 text-[10px] text-slate-500">{getRelativeTime(article.publishedAt)}</p>
                   </Link>
                 ))}
               </div>
@@ -95,6 +113,9 @@ export default function Categories() {
             </div>
           </div>
         )}
+      </div>
+      <div className="hidden lg:block">
+        <PromoBanner location="category" position="bottom" />
       </div>
     </motion.section>
   );

@@ -48,7 +48,7 @@ body.dark {
 }
 
 .animate-marquee {
-  animation: marquee 18s linear infinite;
+  animation: marquee 40s linear infinite;
 }
 
 body.light {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, orderBy, query, limit } from 'firebase/firestore';
 import ArticleCard from '../components/ArticleCard';
 import PromoBanner from '../components/PromoBanner';
 import { Article, categories } from '../data/mockData';
@@ -17,9 +17,9 @@ export default function Home() {
       try {
         const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(20));
         const snapshot = await getDocs(articlesQuery);
-        const articles = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
+        const articles = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
         } as Article));
         setArticlesState(articles);
       } catch (error) {
@@ -62,6 +62,9 @@ export default function Home() {
 
   return (
     <div className="space-y-8 text-right lg:space-y-12">
+      {/* Top Promo Banner */}
+      <PromoBanner location="home" position="top" />
+
       {/* Categories Section */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft lg:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 text-right">
@@ -159,8 +162,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Promo Banner */}
-      <PromoBanner location="home" />
+      {/* Bottom Promo Banner */}
+      <PromoBanner location="home" position="bottom" />
     </div>
   );
 }

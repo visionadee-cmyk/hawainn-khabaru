@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { collection, doc, getDoc, getDocs, orderBy, query } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface PromoBannerProps {
   location?: 'home' | 'article' | 'category';
+  position?: 'top' | 'bottom';
 }
 
 interface BannerData {
@@ -13,11 +14,13 @@ interface BannerData {
   subtitle?: string;
   image: string;
   location: 'home' | 'article' | 'category';
+  position: 'top' | 'bottom';
   size: 'mobile' | 'desktop' | 'both';
 }
 
-export default function PromoBanner({ location = 'home' }: PromoBannerProps) {
-  const [banner, setBanner] = useState<BannerData | null>(null);
+export default function PromoBanner({ location = 'home', position = 'top' }: PromoBannerProps) {
+  const [banners, setBanners] = useState<BannerData[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -28,74 +31,105 @@ export default function PromoBanner({ location = 'home' }: PromoBannerProps) {
   }, []);
 
   useEffect(() => {
-    const fetchSelectedBanner = async () => {
+    const fetchBanners = async () => {
       try {
-        // Get selected banner ID from settings based on location
-        const settingsDoc = await getDoc(doc(db, 'settings', `selectedBanner_${location}`));
-        if (settingsDoc.exists()) {
-          const bannerId = settingsDoc.data().bannerId;
-          if (bannerId) {
-            // Get the banner document
-            const bannerDoc = await getDoc(doc(db, 'banners', bannerId));
-            if (bannerDoc.exists()) {
-              const bannerData = { id: bannerDoc.id, ...bannerDoc.data() } as BannerData;
-              // Check if banner matches current location and size
-              const shouldDisplay = 
-                bannerData.location === location && 
-                (bannerData.size === 'both' || 
-                 (isMobile && bannerData.size === 'mobile') || 
-                 (!isMobile && bannerData.size === 'desktop'));
-              
-              if (shouldDisplay) {
-                setBanner(bannerData);
-              } else {
-                setBanner(null);
-                console.log('Banner does not match location or size requirements');
-              }
-            } else {
-              console.log('Banner document not found:', bannerId, '- clearing selection');
-              // Clear the invalid selection from settings
-              try {
-                const { deleteDoc } = await import('firebase/firestore');
-                await deleteDoc(doc(db, 'settings', `selectedBanner_${location}`));
-              } catch (e) {
-                console.error('Error clearing invalid banner selection:', e);
-              }
-            }
-          } else {
-            console.log('No banner ID in settings for location:', location);
-          }
-        } else {
-          console.log('No settings document for location:', location);
-        }
+        const q = query(collection(db, 'banners'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        const bannersData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BannerData));
+        
+        // Filter by location, position, and size
+        const filteredBanners = bannersData.filter(
+          (banner) => banner.location === location &&
+          banner.position === position &&
+          (banner.size === 'both' || 
+           (isMobile && banner.size === 'mobile') || 
+           (!isMobile && banner.size === 'desktop'))
+        );
+        
+        setBanners(filteredBanners);
+        setCurrentIndex(0);
       } catch (error) {
-        console.error('Error fetching selected banner:', error);
+        console.error('Error fetching banners:', error);
       }
     };
 
-    fetchSelectedBanner();
-  }, [location, isMobile]);
+    fetchBanners();
+  }, [location, position, isMobile]);
 
-  if (!banner) return null;
+  // Auto-rotate banners
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % banners.length);
+    }, 5000); // Rotate every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
+  if (banners.length === 0) return null;
+
+  const currentBanner = banners[currentIndex];
 
   return (
     <div className="relative w-full overflow-hidden bg-slate-900">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative w-full"
-      >
-        <picture>
-          <source media="(min-width: 768px)" srcSet={banner.image} />
-          <img 
-            src={banner.image} 
-            alt={banner.title}
-            className="w-full h-full object-contain"
-            style={{ objectPosition: 'center' }}
-          />
-        </picture>
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentIndex}
+          initial={{ opacity: 0, x: 100 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -100 }}
+          transition={{ duration: 0.5 }}
+          className="relative w-full"
+        >
+          <picture>
+            <source media="(min-width: 768px)" srcSet={currentBanner.image} />
+            <img 
+              src={currentBanner.image} 
+              alt={currentBanner.title}
+              className="w-full h-full object-contain"
+              style={{ objectPosition: 'center' }}
+            />
+          </picture>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Navigation dots */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`h-2 w-2 rounded-full transition-all ${
+                index === currentIndex ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/70'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Navigation arrows */}
+      {banners.length > 1 && (
+        <>
+          <button
+            onClick={() => setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setCurrentIndex((prev) => (prev + 1) % banners.length)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      )}
     </div>
   );
 }

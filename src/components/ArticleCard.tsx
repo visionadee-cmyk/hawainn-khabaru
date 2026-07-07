@@ -3,6 +3,21 @@ import { motion } from 'framer-motion';
 import type { Article } from '../data/mockData';
 import { categories } from '../data/mockData';
 
+const getRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'އަންނަވަނީ';
+  if (diffMins < 60) return `${diffMins} މިނިޓު ކުރިން`;
+  if (diffHours < 24) return `${diffHours} ގަޑިއިރު ކުރިން`;
+  if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
+  return dateString;
+};
+
 export default function ArticleCard({ article }: { article: Article }) {
   const getCategoryTitle = (categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId);
@@ -25,7 +40,7 @@ export default function ArticleCard({ article }: { article: Article }) {
       </Link>
       <div className="space-y-2 p-4">
         <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-          <span>{article.publishedAt}</span>
+          <span>{getRelativeTime(article.publishedAt)}</span>
           <span>{article.readingTime}</span>
         </div>
         <Link to={`/article/${article.id}`} className="block">

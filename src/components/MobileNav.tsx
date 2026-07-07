@@ -65,48 +65,48 @@ export default function MobileNav({ theme, setTheme, language, setLanguage }: Mo
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-t border-slate-800 bg-slate-900"
           >
-            <div className="space-y-1 px-4 py-3">
-              <div className="mb-4">
+            <div className="space-y-1 px-3 py-2">
+              <div className="mb-3">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-sky-400">ބައިތައް</p>
-                    <h2 className="mt-2 text-2xl font-bold text-white">ހުރިހާ ބައިތައް</h2>
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-sky-400">ބައިތައް</p>
+                    <h2 className="mt-1 text-lg font-bold text-white">ހުރިހާ ބައިތައް</h2>
                   </div>
                 </div>
-                <div className="mt-4 grid gap-2">
+                <div className="mt-3 grid gap-1">
                   {categories.map((category) => (
                     <Link 
                       key={category.id} 
                       to={`/categories/${category.id}`}
                       onClick={() => setIsOpen(false)}
-                      className={`cursor-pointer rounded-xl border border-slate-700 p-3 ${category.color} bg-opacity-20 transition hover:border-slate-600`}
+                      className={`cursor-pointer rounded-lg border border-slate-700 px-2 py-1.5 ${category.color} bg-opacity-20 transition hover:border-slate-600`}
                     >
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">{category.id}</p>
-                      <h3 className="mt-1 text-sm font-semibold text-white">{category.title}</h3>
+                      <p className="text-[8px] uppercase tracking-[0.2em] text-slate-400">{category.id}</p>
+                      <h3 className="mt-0.5 text-xs font-semibold text-white">{category.title}</h3>
                     </Link>
                   ))}
                 </div>
               </div>
               
-              <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3">
-                <span className="text-sm text-slate-300">
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
+                <span className="text-xs text-slate-300">
                   {language === 'en' ? 'Language' : 'ބަސް'}
                 </span>
                 <button
                   onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
-                  className="text-sm font-semibold text-sky-400 transition hover:text-sky-300"
+                  className="text-xs font-semibold text-sky-400 transition hover:text-sky-300"
                 >
                   {language === 'en' ? 'DV' : 'EN'}
                 </button>
               </div>
               
-              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3">
-                <span className="text-sm text-slate-300">
+              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
+                <span className="text-xs text-slate-300">
                   {language === 'en' ? 'Theme' : 'ތީމް'}
                 </span>
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="text-sm font-semibold text-sky-400 transition hover:text-sky-300"
+                  className="text-xs font-semibold text-sky-400 transition hover:text-sky-300"
                 >
                   {theme === 'dark' ? '☀️' : '🌙'}
                 </button>

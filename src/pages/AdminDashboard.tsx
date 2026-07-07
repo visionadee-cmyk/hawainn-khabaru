@@ -111,7 +111,7 @@ export default function AdminDashboard() {
       uploading: 'Uploading...',
       bannerUploaded: 'Banner uploaded successfully!',
       bannerUploadError: 'Failed to upload banner. Please try again.',
-      deleteBanner: 'Delete Banner',
+      deleteBanner: 'Delete',
       confirmDeleteBanner: 'Are you sure you want to delete this banner?',
       bannerDeleted: 'Banner deleted successfully!',
       bannerDeleteError: 'Failed to delete banner. Please try again.',
@@ -120,6 +120,9 @@ export default function AdminDashboard() {
       currentBanner: 'Currently Displayed Banner',
       bannerLocation: 'Banner Location',
       bannerSize: 'Banner Size',
+      bannerPosition: 'Banner Position',
+      positionTop: 'Top',
+      positionBottom: 'Bottom',
       locationHome: 'Home Page',
       locationArticle: 'Article Page',
       locationCategory: 'Category Page',
@@ -215,7 +218,7 @@ export default function AdminDashboard() {
       uploading: 'އަޕްލޯޑް ކުރަނީ...',
       bannerUploaded: 'ބެނަރު އަޕްލޯޑް ކުރެވިއްޖެ',
       bannerUploadError: 'ބެނަރު އަޕްލޯޑް ކުރުމަށް ފެއިލް ވެއްޖެ. އަލުން މަސައްކަތް ކުރޭ',
-      deleteBanner: 'ބެނަރު ޑިލީޓް ކުރޭ',
+      deleteBanner: 'ޑިލީޓް',
       confirmDeleteBanner: 'މި ބެނަރު ޑިލީޓް ކުރާނީތަ؟',
       bannerDeleted: 'ބެނަރު ޑިލީޓް ކުރެވިއްޖެ',
       bannerDeleteError: 'ބެނަރު ޑިލީޓް ކުރުމަށް ފެއިލް ވެއްޖެ',
@@ -224,6 +227,9 @@ export default function AdminDashboard() {
       currentBanner: 'މިހާރު ދައްކާ ބެނަރު',
       bannerLocation: 'ބެނަރު ހުސްކަން',
       bannerSize: 'ބެނަރު ސައިޒް',
+      bannerPosition: 'ބެނަރު ހުސްކަން',
+      positionTop: 'މައްޗު',
+      positionBottom: 'ތިރީ',
       locationHome: 'މައި ޞަފްޙާ',
       locationArticle: 'ޚަބަރު ޞަފްޙާ',
       locationCategory: 'ކެޓަގަރީ ޞަފްޙާ',
@@ -275,10 +281,9 @@ export default function AdminDashboard() {
   const [bannerTitle, setBannerTitle] = useState('');
   const [bannerSubtitle, setBannerSubtitle] = useState('');
   const [bannerLocation, setBannerLocation] = useState<'home' | 'article' | 'category'>('home');
+  const [bannerPosition, setBannerPosition] = useState<'top' | 'bottom'>('top');
   const [bannerSize, setBannerSize] = useState<'mobile' | 'desktop' | 'both'>('both');
   const [uploadingBanner, setUploadingBanner] = useState(false);
-  const [selectedBannerId, setSelectedBannerId] = useState<string>('');
-  const [filterLocation, setFilterLocation] = useState<'home' | 'article' | 'category'>('home');
   const [bannerError, setBannerError] = useState('');
 
   const navigate = useNavigate();
@@ -304,14 +309,6 @@ export default function AdminDashboard() {
       const bannerSnapshot = await getDocs(query(collection(db, 'banners'), orderBy('createdAt', 'desc')));
       const bannersData = bannerSnapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
       setBanners(bannersData);
-      
-      // Load selected banner based on filter location
-      const selectedBannerDoc = await getDocs(collection(db, 'settings'));
-      selectedBannerDoc.forEach((doc) => {
-        if (doc.id === `selectedBanner_${filterLocation}`) {
-          setSelectedBannerId(doc.data().bannerId || '');
-        }
-      });
     } catch (error) {
       console.warn('Unable to load dashboard data', error);
     }
@@ -618,6 +615,7 @@ export default function AdminDashboard() {
         subtitle: bannerSubtitle,
         image: imageUrl,
         location: bannerLocation,
+        position: bannerPosition,
         size: bannerSize,
         createdAt: serverTimestamp(),
       });
@@ -627,6 +625,7 @@ export default function AdminDashboard() {
       setBannerTitle('');
       setBannerSubtitle('');
       setBannerLocation('home');
+      setBannerPosition('top');
       setBannerSize('both');
       loadDashboard();
     } catch (error) {
@@ -634,19 +633,6 @@ export default function AdminDashboard() {
       console.error(error);
     } finally {
       setUploadingBanner(false);
-    }
-  };
-
-  const handleSelectBanner = async (bannerId: string) => {
-    try {
-      await setDoc(doc(db, 'settings', `selectedBanner_${filterLocation}`), {
-        bannerId: bannerId,
-      }, { merge: true });
-      setSelectedBannerId(bannerId);
-      setMessage('Banner selected successfully');
-    } catch (error) {
-      console.error('Error selecting banner:', error);
-      setMessage('Failed to select banner');
     }
   };
 
@@ -1014,7 +1000,7 @@ export default function AdminDashboard() {
                   placeholder={t.bannerSubtitle}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <label className="block text-sm font-semibold text-slate-300">{t.bannerLocation}</label>
                   <select
@@ -1026,6 +1012,18 @@ export default function AdminDashboard() {
                     <option value="home">{t.locationHome}</option>
                     <option value="article">{t.locationArticle}</option>
                     <option value="category">{t.locationCategory}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">{t.bannerPosition}</label>
+                  <select
+                    value={bannerPosition}
+                    onChange={(e) => setBannerPosition(e.target.value as 'top' | 'bottom')}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    required
+                  >
+                    <option value="top">{t.positionTop}</option>
+                    <option value="bottom">{t.positionBottom}</option>
                   </select>
                 </div>
                 <div>
@@ -1062,81 +1060,29 @@ export default function AdminDashboard() {
 
             {/* Banners List */}
             <div className="mt-8">
-              <h4 className="text-lg font-semibold text-white mb-4">{t.currentBanner}</h4>
+              <h4 className="text-lg font-semibold text-white mb-4">{t.manageBanners}</h4>
               
-              {/* Location Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.bannerLocation}</label>
-                <select
-                  value={filterLocation}
-                  onChange={(e) => {
-                    setFilterLocation(e.target.value as 'home' | 'article' | 'category');
-                    setSelectedBannerId('');
-                  }}
-                  className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                >
-                  <option value="home">{t.locationHome}</option>
-                  <option value="article">{t.locationArticle}</option>
-                  <option value="category">{t.locationCategory}</option>
-                </select>
-              </div>
-              
-              {/* Banner Selection Dropdown */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.selectBanner}</label>
-                <select
-                  value={selectedBannerId}
-                  onChange={(e) => handleSelectBanner(e.target.value)}
-                  className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                >
-                  <option value="">{t.noBannerSelected}</option>
-                  {banners.filter(b => b.location === filterLocation).map((banner) => (
-                    <option key={banner.id} value={banner.id}>
-                      {banner.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Currently Selected Banner Preview */}
-              {selectedBannerId && banners.find(b => b.id === selectedBannerId) && (
-                <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                  <p className="text-sm text-emerald-400 mb-2">✓ Currently Displayed:</p>
-                  {(() => {
-                    const currentBanner = banners.find(b => b.id === selectedBannerId);
-                    return currentBanner ? (
-                      <>
-                        <img src={currentBanner.image} alt={currentBanner.title} className="w-full h-32 object-cover rounded-lg mb-2" />
-                        <h4 className="font-semibold text-white">{currentBanner.title}</h4>
-                        {currentBanner.subtitle && <p className="text-sm text-slate-400">{currentBanner.subtitle}</p>}
-                      </>
-                    ) : null;
-                  })()}
-                </div>
-              )}
-
-              <h4 className="text-lg font-semibold text-white mb-4">All Banners ({filterLocation})</h4>
-              <div className="space-y-3">
-                {banners.filter(b => b.location === filterLocation).length > 0 ? (
-                  banners.filter(b => b.location === filterLocation).map((banner) => (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {banners.length > 0 ? (
+                  banners.map((banner) => (
                     <div key={banner.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <img src={banner.image} alt={banner.title} className="w-full h-32 object-cover rounded-lg mb-2" />
-                          <h4 className="font-semibold text-white">{banner.title}</h4>
-                          {banner.subtitle && <p className="mt-1 text-sm text-slate-400">{banner.subtitle}</p>}
-                          <div className="mt-2 flex gap-2 text-xs">
-                            <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
-                              {banner.size === 'mobile' ? t.sizeMobile : banner.size === 'desktop' ? t.sizeDesktop : t.sizeBoth}
-                            </span>
-                          </div>
-                          {selectedBannerId === banner.id && (
-                            <p className="mt-2 text-xs text-emerald-400">✓ Currently displayed</p>
-                          )}
-                        </div>
+                      <img src={banner.image} alt={banner.title} className="w-full h-32 object-cover rounded-lg mb-3" />
+                      <h4 className="font-semibold text-white text-sm">{banner.title}</h4>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                          {banner.location === 'home' ? t.locationHome : banner.location === 'article' ? t.locationArticle : t.locationCategory}
+                        </span>
+                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                          {banner.position === 'top' ? t.positionTop : t.positionBottom}
+                        </span>
+                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                          {banner.size === 'mobile' ? t.sizeMobile : banner.size === 'desktop' ? t.sizeDesktop : t.sizeBoth}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex gap-2 relative z-10">
                         <button
                           onClick={() => handleDeleteBanner(banner.id)}
-                          className="rounded-xl border border-rose-600 px-3 py-1.5 text-sm text-rose-400 transition hover:bg-rose-600/20"
+                          className="w-full rounded-xl border border-rose-600 px-3 py-1.5 text-xs text-rose-400 transition hover:bg-rose-600/20 cursor-pointer"
                         >
                           {t.deleteBanner}
                         </button>
@@ -1144,27 +1090,9 @@ export default function AdminDashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-slate-400">No banners uploaded for this location</p>
+                  <p className="text-slate-400 col-span-full">No banners uploaded yet</p>
                 )}
               </div>
-
-              {/* Full Size Preview */}
-              {selectedBannerId && banners.find(b => b.id === selectedBannerId) && (
-                <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-950/80 p-4">
-                  <h4 className="text-lg font-semibold text-white mb-4">Full Size Preview</h4>
-                  {(() => {
-                    const currentBanner = banners.find(b => b.id === selectedBannerId);
-                    return currentBanner ? (
-                      <img 
-                        src={currentBanner.image} 
-                        alt={currentBanner.title} 
-                        className="w-full object-contain rounded-lg"
-                        style={{ maxHeight: '400px' }}
-                      />
-                    ) : null;
-                  })()}
-                </div>
-              )}
             </div>
           </div>
         )}

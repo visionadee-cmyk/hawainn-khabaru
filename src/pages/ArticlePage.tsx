@@ -4,9 +4,24 @@ import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { Article, categories } from '../data/mockData';
 import { db } from '../firebase';
-import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, addDoc, deleteDoc, setDoc, getDocsFromCache } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, addDoc, deleteDoc, setDoc, updateDoc, getDocsFromCache } from 'firebase/firestore';
 import { auth } from '../firebase';
 import PromoBanner from '../components/PromoBanner';
+
+const getRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'އަންނަވަނީ';
+  if (diffMins < 60) return `${diffMins} މިނިޓު ކުރިން`;
+  if (diffHours < 24) return `${diffHours} ގަޑިއިރު ކުރިން`;
+  if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
+  return dateString;
+};
 
 export default function ArticlePage() {
   const { id } = useParams();
@@ -38,6 +53,10 @@ export default function ArticlePage() {
         if (docSnap.exists()) {
           const articleData = { id: docSnap.id, ...docSnap.data() } as Article;
           setArticle(articleData);
+          
+          // Increment view count in article document
+          const currentViews = articleData.views || 0;
+          await updateDoc(docRef, { views: currentViews + 1 });
           
           // Fetch likes/dislikes
           const likesDoc = await getDoc(doc(db, 'articles', id, 'likes', 'count'));
@@ -233,7 +252,7 @@ export default function ArticlePage() {
         <meta property="og:url" content={window.location.href} />
         <meta name="twitter:image" content={article?.image} />
       </Helmet>
-      <PromoBanner location="article" />
+      <PromoBanner location="article" position="top" />
       <motion.section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:p-8">
         <button
           className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
@@ -249,7 +268,7 @@ export default function ArticlePage() {
             <div className="space-y-2 text-slate-700">
               <span className="inline-flex rounded-full bg-sky-600/95 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-white">{article.category}</span>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span>{article.publishedAt}</span>
+                <span>{getRelativeTime(article.publishedAt)}</span>
                 <span>{article.author}</span>
                 <span>{article.readingTime}</span>
               </div>
@@ -375,6 +394,7 @@ export default function ArticlePage() {
           </aside>
         </div>
       </motion.section>
+      <PromoBanner location="article" position="bottom" />
     </div>
   );
 }

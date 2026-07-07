@@ -31,22 +31,23 @@ app.post('/api/facebook/post', async (req, res) => {
       message,
       access_token: accessToken,
       published: 'true',
+      privacy: '{"value":"EVERYONE"}',
     };
 
     let endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
 
-    // If image URL is provided, post as photo with article URL in caption
+    // If image URL is provided, post as feed post with attached image
     if (imageUrl) {
-      endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
-      // Include article URL in caption for clickable link
-      const captionWithLink = articleUrl 
+      // Use feed endpoint with attached image for better visibility
+      const messageWithLink = articleUrl 
         ? `${message}\n\nRead more: ${articleUrl}`
         : message;
       requestBody = {
-        url: imageUrl,
-        caption: captionWithLink,
+        message: messageWithLink,
+        link: imageUrl,
         access_token: accessToken,
         published: 'true',
+        privacy: '{"value":"EVERYONE"}',
       };
     } else if (articleUrl) {
       // If no image but has article URL, post as link
@@ -121,6 +122,31 @@ app.delete('/api/facebook/post/:postId', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Facebook posting proxy listening on port ${port}`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  console.error('Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${port} is already in use. Please kill the process using that port.`);
+  }
+});
+
+// Handle process termination gracefully
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
