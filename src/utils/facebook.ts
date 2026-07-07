@@ -52,3 +52,26 @@ export async function deleteFromFacebook(postId: string) {
     return { success: false, error: 'Error deleting from Facebook proxy' };
   }
 }
+
+export async function getFacebookPageInsights() {
+  const proxyUrl = import.meta.env.VITE_FACEBOOK_PROXY_URL || 'http://localhost:3001/api/facebook/insights';
+
+  try {
+    const response = await fetch(proxyUrl, {
+      method: 'GET',
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error('Failed to fetch Facebook insights:', data.error || response.statusText);
+      return { success: false, error: data.error || 'Failed to fetch Facebook insights' };
+    }
+
+    console.log('Successfully fetched Facebook insights');
+    return { success: true, insights: data };
+  } catch (error) {
+    console.error('Error fetching Facebook insights:', error);
+    return { success: false, error: 'Error fetching Facebook insights' };
+  }
+}

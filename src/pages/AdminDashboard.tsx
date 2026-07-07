@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { categories } from '../data/mockData';
-import { postToFacebook, deleteFromFacebook } from '../utils/facebook';
+import { postToFacebook, deleteFromFacebook, getFacebookPageInsights } from '../utils/facebook';
 import { uploadImage } from '../utils/cloudinary';
 
 type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners';
@@ -18,6 +18,8 @@ export default function AdminDashboard() {
   const [articles, setArticles] = useState<any[]>([]);
   const [visitorDetails, setVisitorDetails] = useState<any[]>([]);
   const [uniqueVisitors, setUniqueVisitors] = useState(0);
+  const [facebookInsights, setFacebookInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>('articles');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [language, setLanguage] = useState<'en' | 'dv'>('dv');
@@ -64,6 +66,20 @@ export default function AdminDashboard() {
       uniqueVisitors: 'Unique Visitors',
       visitorLog: 'Visitor Log',
       noVisitors: 'No visitors',
+      facebookPage: 'Facebook Page',
+      pageViews: 'Page Views',
+      pageLikes: 'Page Likes',
+      pageFollowers: 'Page Followers',
+      refreshInsights: 'Refresh Insights',
+      loadingInsights: 'Loading...',
+      device: 'Device',
+      browser: 'Browser',
+      os: 'OS',
+      time: 'Time',
+      screen: 'Screen',
+      referrer: 'Referrer',
+      sameDevice: 'Same Device',
+      newDevice: 'New Device',
       translateTitle: 'English to Dhivehi Translation',
       translateDesc: 'Type or paste English text to translate to Dhivehi.',
       englishPlaceholder: 'Type English text here...',
@@ -172,6 +188,20 @@ export default function AdminDashboard() {
       uniqueVisitors: 'ތަފާތު ޒިޔާރަތްތެރިން',
       visitorLog: 'ޒިޔާރަތް ލޮގް',
       noVisitors: 'ޒިޔާރަތްތެރިން ނެތް',
+      facebookPage: 'ފޭސްބުކް ޕޭޖް',
+      pageViews: 'ޕޭޖް ވިއުސް',
+      pageLikes: 'ޕޭޖް ލައިކްސް',
+      pageFollowers: 'ޕޭޖް ފޮލޯވަރސް',
+      refreshInsights: 'އިންސައިޓްސް ރީފްރެޝް ކުރޭ',
+      loadingInsights: 'ލޯޑް ވަނީ...',
+      device: 'ޑިވައިސް',
+      browser: 'ބްރައުޒަރު',
+      os: 'އޯއެސް',
+      time: 'ވަގުތު',
+      screen: 'ސްކްރީން',
+      referrer: 'ރިފަރަރު',
+      sameDevice: 'އެއްވަނަސް ޑިވައިސް',
+      newDevice: 'އަންނަ ޑިވައިސް',
       translateTitle: 'އިނގިރޭސިން ދިވެހިއަށް ތަރުޖަމާ',
       translateDesc: 'އިނގިރޭސި ލިޔުން ލިޔާ ނުވަތަ ޕޭސްޓް ކުރޭ',
       englishPlaceholder: 'މިތާނގައި އިނގިރޭސި ލިޔުން ލިޔާ...',
@@ -301,11 +331,6 @@ export default function AdminDashboard() {
       const articlesData = articleSnapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
       setArticles(articlesData);
       setArticlesCount(articleSnapshot.size);
-      const visitorQuery = query(collection(db, 'visitors'), orderBy('timestamp', 'desc'), limit(100));
-      const visitorSnapshot = await getDocs(visitorQuery);
-      const visitors = visitorSnapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
-      setVisitorDetails(visitors);
-      setUniqueVisitors(new Set(visitors.map((item: any) => item.userAgent || item.referrer || item.path)).size);
       
       // Load banners
       const bannerSnapshot = await getDocs(query(collection(db, 'banners'), orderBy('createdAt', 'desc')));
@@ -314,6 +339,75 @@ export default function AdminDashboard() {
     } catch (error) {
       console.warn('Unable to load dashboard data', error);
     }
+  };
+
+  // Real-time visitor tracking
+  useEffect(() => {
+    if (!user) return;
+
+    const visitorQuery = query(collection(db, 'visitors'), orderBy('timestamp', 'desc'), limit(1000));
+    const unsubscribe = onSnapshot(visitorQuery, (snapshot) => {
+      const visitors = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
+      setVisitorDetails(visitors);
+
+      // Calculate unique visitors based on user agent (as a proxy for unique users)
+      const uniqueUserAgents = new Set(visitors.map((item: any) => item.userAgent)).size;
+      setUniqueVisitors(uniqueUserAgents);
+    }, (error) => {
+      console.error('Error fetching visitors:', error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Load Facebook insights
+  const loadFacebookInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const result = await getFacebookPageInsights();
+      if (result.success) {
+        setFacebookInsights(result.insights);
+      } else {
+        console.error('Failed to load Facebook insights:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading Facebook insights:', error);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
+
+  // Helper function to parse user agent for old records
+  const parseUserAgent = (userAgent: string) => {
+    if (!userAgent) return { deviceType: 'Unknown', browser: 'Unknown', os: 'Unknown' };
+
+    const uaLower = userAgent.toLowerCase();
+
+    // Detect device type
+    let deviceType = 'desktop';
+    if (/mobile|android|iphone|ipod/i.test(userAgent)) {
+      deviceType = 'mobile';
+    } else if (/tablet|ipad/i.test(userAgent)) {
+      deviceType = 'tablet';
+    }
+
+    // Detect browser
+    let browser = 'other';
+    if (uaLower.includes('chrome') && !uaLower.includes('edg')) browser = 'chrome';
+    else if (uaLower.includes('firefox')) browser = 'firefox';
+    else if (uaLower.includes('safari') && !uaLower.includes('chrome')) browser = 'safari';
+    else if (uaLower.includes('edg')) browser = 'edge';
+    else if (uaLower.includes('opera') || uaLower.includes('opr')) browser = 'opera';
+
+    // Detect OS
+    let os = 'other';
+    if (uaLower.includes('windows nt')) os = 'windows';
+    else if (uaLower.includes('mac os x')) os = 'macos';
+    else if (uaLower.includes('linux')) os = 'linux';
+    else if (uaLower.includes('android')) os = 'android';
+    else if (uaLower.includes('ios') || uaLower.includes('iphone') || uaLower.includes('ipad')) os = 'ios';
+
+    return { deviceType, browser, os };
   };
 
   useEffect(() => {
@@ -414,8 +508,29 @@ export default function AdminDashboard() {
         breaking,
         createdAt: serverTimestamp(),
       });
+
+      try {
+        const fbResult = await shareArticleToFacebook({
+          id: articleId,
+          title: titleDv || title,
+          titleEn: title,
+          excerpt: excerptDv || excerpt,
+          excerptEn: excerpt,
+          image: finalImageUrl,
+        });
+
+        if (fbResult.success && fbResult.postId) {
+          await updateDoc(doc(db, 'articles', articleId), { facebookPostId: fbResult.postId });
+          setMessage(t.postedToFb);
+        } else {
+          console.warn('Facebook auto-post failed:', fbResult.error);
+          setMessage(t.newsCreated);
+        }
+      } catch (facebookError) {
+        console.error('Facebook auto-post error:', facebookError);
+        setMessage(t.newsCreated);
+      }
       
-      setMessage(t.newsCreated);
       setTitle('');
       setTitleDv('');
       setExcerpt('');
@@ -459,17 +574,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const shareArticleToFacebook = async (article: any) => {
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    const articleUrl = `${appUrl}/article/${article.id}`;
+    const fbTitle = article.title || article.titleEn || '';
+    const fbExcerpt = article.excerpt || article.excerptEn || '';
+    return postToFacebook(fbTitle, fbExcerpt, article.image, articleUrl);
+  };
+
   const handlePostToFacebook = async (article: any) => {
     try {
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const articleUrl = `${appUrl}/article/${article.id}`;
-      // Use Dhivehi text for Facebook posting, fallback to English if not available
-      const fbTitle = article.title || article.titleEn;
-      const fbExcerpt = article.excerpt || article.excerptEn;
-      const fbResult = await postToFacebook(fbTitle, fbExcerpt, article.image, articleUrl);
+      const fbResult = await shareArticleToFacebook(article);
       
       if (fbResult.success && fbResult.postId) {
-        // Store Facebook post ID in the article document
         await updateDoc(doc(db, 'articles', article.id), { facebookPostId: fbResult.postId });
         setMessage(article.facebookPostId ? 'Reposted to Facebook' : t.postedToFb);
         loadDashboard();
@@ -1278,7 +1395,7 @@ export default function AdminDashboard() {
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
               <h3 className="text-xl font-semibold text-white">{t.analytics}</h3>
               <div className="mt-6 space-y-4">
@@ -1297,15 +1414,74 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-              <h3 className="text-xl font-semibold text-white">{t.visitorLog}</h3>
-              <div className="mt-4 space-y-3 text-sm">
-                {topVisitors.length > 0 ? (
-                  topVisitors.map((visitor) => (
-                    <div key={visitor.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-3">
-                      <p className="font-semibold text-white">{visitor.path || 'Home'}</p>
-                      <p className="mt-1 text-xs text-slate-500">{visitor.language || 'Unknown'}</p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white">{t.facebookPage}</h3>
+                <button
+                  onClick={loadFacebookInsights}
+                  disabled={loadingInsights}
+                  className="rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800/80 disabled:opacity-50"
+                >
+                  {loadingInsights ? t.loadingInsights : t.refreshInsights}
+                </button>
+              </div>
+              <div className="mt-6 space-y-4">
+                {facebookInsights ? (
+                  <>
+                    <div className="rounded-2xl bg-slate-950/80 p-4">
+                      <p className="text-sm text-slate-400">{t.pageViews}</p>
+                      <p className="mt-2 text-3xl font-bold text-white">{facebookInsights.page_views || 'N/A'}</p>
                     </div>
-                  ))
+                    <div className="rounded-2xl bg-slate-950/80 p-4">
+                      <p className="text-sm text-slate-400">{t.pageLikes}</p>
+                      <p className="mt-2 text-3xl font-bold text-white">{facebookInsights.page_likes || 'N/A'}</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-950/80 p-4">
+                      <p className="text-sm text-slate-400">{t.pageFollowers}</p>
+                      <p className="mt-2 text-3xl font-bold text-white">{facebookInsights.page_followers || 'N/A'}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl bg-slate-950/80 p-4">
+                    <p className="text-sm text-slate-400">{loadingInsights ? t.loadingInsights : 'Click refresh to load insights'}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
+              <h3 className="text-xl font-semibold text-white">{t.visitorLog}</h3>
+              <div className="mt-4 space-y-3 text-sm max-h-96 overflow-y-auto">
+                {topVisitors.length > 0 ? (
+                  topVisitors.map((visitor) => {
+                    const parsed = parseUserAgent(visitor.userAgent);
+                    return (
+                      <div key={visitor.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-white">{visitor.path || 'Home'}</p>
+                            <div className="mt-2 space-y-1 text-xs text-slate-400">
+                              <p><span className="text-slate-500">{t.device}:</span> {visitor.deviceType || parsed.deviceType}</p>
+                              <p><span className="text-slate-500">{t.browser}:</span> {visitor.browser || parsed.browser}</p>
+                              <p><span className="text-slate-500">{t.os}:</span> {visitor.os || parsed.os}</p>
+                              <p><span className="text-slate-500">{t.screen}:</span> {visitor.screenResolution || visitor.viewport || 'Not available'}</p>
+                              <p><span className="text-slate-500">{t.referrer}:</span> {visitor.referrer || 'Direct'}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-slate-500">
+                              {visitor.timestamp ? new Date(visitor.timestamp.seconds * 1000).toLocaleString() : visitor.visitTime || 'Unknown'}
+                            </p>
+                            <p className="text-xs text-slate-500">{visitor.timezone || 'Unknown'}</p>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {visitor.isNewVisitor ? '🆕 New' : '↩️ Return'}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {visitor.isSameDevice !== undefined ? (visitor.isSameDevice ? `📱 ${t.sameDevice}` : `🆕 ${t.newDevice}`) : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
                   <p className="text-slate-400">{t.noVisitors}</p>
                 )}

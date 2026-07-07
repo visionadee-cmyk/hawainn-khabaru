@@ -1,19 +1,89 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envFilePath = path.join(__dirname, '.env');
+
+const saveAccessToken = (token) => {
+  if (!token) return;
+
+  const normalizedToken = token.trim();
+  if (!normalizedToken) return;
+
+  const envContent = fs.existsSync(envFilePath) ? fs.readFileSync(envFilePath, 'utf8') : '';
+  const lines = envContent.split(/\r?\n/);
+  const tokenLine = lines.findIndex((line) => line.startsWith('FACEBOOK_PAGE_ACCESS_TOKEN='));
+
+  if (tokenLine >= 0) {
+    lines[tokenLine] = `FACEBOOK_PAGE_ACCESS_TOKEN=${normalizedToken}`;
+  } else {
+    lines.push(`FACEBOOK_PAGE_ACCESS_TOKEN=${normalizedToken}`);
+  }
+
+  fs.writeFileSync(envFilePath, `${lines.join('\n')}\n`);
+  process.env.FACEBOOK_PAGE_ACCESS_TOKEN = normalizedToken;
+};
+
+const getValidPageAccessToken = async (currentToken) => {
+  const token = currentToken || process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+  const appId = process.env.FACEBOOK_APP_ID;
+  const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+  if (!token || !appId || !appSecret) {
+    return token || '';
+  }
+
+  try {
+    const url = new URL('https://graph.facebook.com/oauth/access_token');
+    url.searchParams.set('grant_type', 'fb_exchange_token');
+    url.searchParams.set('client_id', appId);
+    url.searchParams.set('client_secret', appSecret);
+    url.searchParams.set('fb_exchange_token', token);
+
+    const response = await fetch(url.toString());
+    const data = await response.json().catch(() => ({}));
+
+    if (data.access_token) {
+      saveAccessToken(data.access_token);
+      return data.access_token;
+    }
+
+    return token;
+  } catch (error) {
+    console.warn('Facebook token refresh failed; using the current token.', error);
+    return token;
+  }
+};
 
 app.use(cors());
 app.use(express.json());
 
+app.post('/api/facebook/refresh-token', async (_req, res) => {
+  const refreshedToken = await getValidPageAccessToken(process.env.FACEBOOK_PAGE_ACCESS_TOKEN);
+
+  if (!refreshedToken) {
+    return res.status(500).json({
+      success: false,
+      error: 'Facebook page token could not be refreshed.',
+    });
+  }
+
+  return res.json({ success: true, accessToken: refreshedToken });
+});
+
 app.post('/api/facebook/post', async (req, res) => {
   const { title, excerpt, imageUrl, articleUrl } = req.body || {};
   const pageId = process.env.FACEBOOK_PAGE_ID;
-  const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+  const accessToken = await getValidPageAccessToken(process.env.FACEBOOK_PAGE_ACCESS_TOKEN);
 
   console.log('Facebook Post Request:', { title, excerpt, imageUrl, articleUrl, pageId, hasToken: !!accessToken });
 
@@ -84,7 +154,7 @@ app.post('/api/facebook/post', async (req, res) => {
 
 app.delete('/api/facebook/post/:postId', async (req, res) => {
   const { postId } = req.params;
-  const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+  const accessToken = await getValidPageAccessToken(process.env.FACEBOOK_PAGE_ACCESS_TOKEN);
 
   if (!accessToken) {
     return res.status(500).json({
@@ -115,6 +185,56 @@ app.delete('/api/facebook/post/:postId', async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unexpected server error.',
+    });
+  }
+});
+
+app.get('/api/facebook/insights', async (req, res) => {
+  const pageId = process.env.FACEBOOK_PAGE_ID;
+  const accessToken = await getValidPageAccessToken(process.env.FACEBOOK_PAGE_ACCESS_TOKEN);
+
+  if (!pageId || !accessToken) {
+    return res.status(500).json({
+      success: false,
+      error: 'Facebook page credentials are not configured on the server.',
+    });
+  }
+
+  try {
+    // Fetch page insights for page views, likes, and followers
+    const metrics = 'page_views,page_fan_adds,page_fan_removes,page_fans';
+    const response = await fetch(
+      `https://graph.facebook.com/v20.0/${pageId}/insights?metric=${metrics}&period=day&access_token=${accessToken}`
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        error: data.error?.message || 'Facebook API request failed.',
+      });
+    }
+
+    // Also fetch page info for current likes/followers count
+    const pageInfoResponse = await fetch(
+      `https://graph.facebook.com/v20.0/${pageId}?fields=fan_count,followers_count&access_token=${accessToken}`
+    );
+
+    const pageInfoData = await pageInfoResponse.json().catch(() => ({}));
+
+    const insights = {
+      page_views: data.data?.find((m) => m.name === 'page_views')?.values[0]?.value || 0,
+      page_likes: pageInfoData.fan_count || 0,
+      page_followers: pageInfoData.followers_count || 0,
+    };
+
+    return res.json({ success: true, insights });
+  } catch (error) {
+    console.error('Facebook Insights API Error:', error);
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unexpected server error.',

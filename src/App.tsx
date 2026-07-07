@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 import Home from './pages/Home';
 import Categories from './pages/Categories';
 import Videos from './pages/Videos';
@@ -29,6 +31,95 @@ function App() {
     document.body.classList.toggle('dark', theme === 'dark');
     document.body.classList.toggle('light', theme === 'light');
   }, [theme]);
+
+  // Track visitor - only once per session
+  useEffect(() => {
+    const trackVisitor = async () => {
+      try {
+        // Check if this session has already been tracked
+        const sessionTracked = sessionStorage.getItem('sessionTracked');
+        if (sessionTracked) return;
+
+        const visitorId = localStorage.getItem('visitorId');
+        const today = new Date().toDateString();
+        const lastVisit = localStorage.getItem('lastVisitDate');
+
+        const isNewVisitor = !visitorId || lastVisit !== today;
+
+        // Generate device fingerprint
+        const userAgent = navigator.userAgent;
+        const screenRes = `${window.screen.width}x${window.screen.height}`;
+        const deviceFingerprint = btoa(`${userAgent}|${screenRes}|${navigator.language}`).substring(0, 32);
+
+        // Get previous device ID
+        const previousDeviceId = localStorage.getItem('deviceId');
+        const isSameDevice = previousDeviceId === deviceFingerprint;
+
+        // Detect device type
+        console.log('User Agent:', userAgent);
+
+        let deviceType = 'desktop';
+        if (/Mobile|Android|iPhone|iPod/i.test(userAgent)) {
+          deviceType = 'mobile';
+        } else if (/Tablet|iPad/i.test(userAgent)) {
+          deviceType = 'tablet';
+        }
+
+        // Detect browser
+        let browser = 'other';
+        const uaLower = userAgent.toLowerCase();
+        if (uaLower.includes('chrome') && !uaLower.includes('edg')) browser = 'chrome';
+        else if (uaLower.includes('firefox')) browser = 'firefox';
+        else if (uaLower.includes('safari') && !uaLower.includes('chrome')) browser = 'safari';
+        else if (uaLower.includes('edg')) browser = 'edge';
+        else if (uaLower.includes('opera') || uaLower.includes('opr')) browser = 'opera';
+
+        // Detect OS
+        let os = 'other';
+        if (uaLower.includes('windows nt')) os = 'windows';
+        else if (uaLower.includes('mac os x')) os = 'macos';
+        else if (uaLower.includes('linux')) os = 'linux';
+        else if (uaLower.includes('android')) os = 'android';
+        else if (uaLower.includes('ios') || uaLower.includes('iphone') || uaLower.includes('ipad')) os = 'ios';
+
+        console.log('Detected:', { deviceType, browser, os, deviceFingerprint, isSameDevice });
+
+        const visitorData = {
+          path: location.pathname,
+          userAgent,
+          language: navigator.language,
+          timestamp: serverTimestamp(),
+          isNewVisitor,
+          deviceType,
+          browser,
+          os,
+          screenResolution: `${window.screen.width}x${window.screen.height}`,
+          viewport: `${window.innerWidth}x${window.innerHeight}`,
+          referrer: document.referrer || 'direct',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          visitTime: new Date().toLocaleTimeString(),
+          deviceFingerprint,
+          isSameDevice,
+        };
+
+        await addDoc(collection(db, 'visitors'), visitorData);
+
+        // Mark this session as tracked
+        sessionStorage.setItem('sessionTracked', 'true');
+
+        // Set visitor ID, device ID, and last visit date
+        if (!visitorId) {
+          localStorage.setItem('visitorId', Date.now().toString());
+        }
+        localStorage.setItem('deviceId', deviceFingerprint);
+        localStorage.setItem('lastVisitDate', today);
+      } catch (error) {
+        console.error('Error tracking visitor:', error);
+      }
+    };
+
+    trackVisitor();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
