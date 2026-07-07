@@ -3,11 +3,29 @@ import admin from 'firebase-admin';
 const initializeFirebaseAdmin = () => {
   if (admin.apps.length > 0) return admin.app();
 
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const serviceAccountKeyRaw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
 
+  let serviceAccountKey = serviceAccountKeyRaw?.trim();
+  if (serviceAccountKey?.startsWith("'") && serviceAccountKey.endsWith("'")) {
+    serviceAccountKey = serviceAccountKey.slice(1, -1);
+  } else if (serviceAccountKey?.startsWith('"') && serviceAccountKey.endsWith('"')) {
+    serviceAccountKey = serviceAccountKey.slice(1, -1);
+  }
+
+  if (!projectId) {
+    throw new Error('Firebase project ID is not configured.');
+  }
+
   const credentials = serviceAccountKey
-    ? admin.credential.cert(JSON.parse(serviceAccountKey))
+    ? (() => {
+        try {
+          return admin.credential.cert(JSON.parse(serviceAccountKey));
+        } catch (error) {
+          console.error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON:', error);
+          throw new Error('Invalid Firebase service account key configuration.');
+        }
+      })()
     : admin.credential.applicationDefault();
 
   return admin.initializeApp({
@@ -56,6 +74,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, visitors });
   } catch (error) {
     console.error('Visitor API error:', error);
-    return res.status(500).json({ error: 'Failed to fetch visitors' });
+    const message = error instanceof Error ? error.message : 'Failed to fetch visitors';
+    return res.status(500).json({ error: message });
   }
 }
