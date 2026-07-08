@@ -56,62 +56,50 @@ export default function ArticlePage() {
           const articleData = { id: docSnap.id, ...docSnap.data() } as Article;
           setArticle(articleData);
 
-          // Increment view count if allowed, but don't fail the page load if the user is not authorized to write.
-          try {
-            const currentViews = articleData.views || 0;
-            await updateDoc(docRef, { views: currentViews + 1 });
-          } catch (viewError) {
-            console.warn('Unable to increment article views:', viewError);
-          }
+          // Non-blocking view count increment
+          updateDoc(docRef, { views: (articleData.views || 0) + 1 }).catch(err => {
+            console.warn('Unable to increment article views:', err);
+          });
 
-          // Fetch likes/dislikes if permissions allow it.
-          try {
-            const likesDoc = await getDoc(doc(db, 'articles', id, 'likes', 'count'));
-            const dislikesDoc = await getDoc(doc(db, 'articles', id, 'dislikes', 'count'));
+          // Parallel fetch of likes/dislikes
+          Promise.all([
+            getDoc(doc(db, 'articles', id, 'likes', 'count')),
+            getDoc(doc(db, 'articles', id, 'dislikes', 'count'))
+          ]).then(([likesDoc, dislikesDoc]) => {
             setLikes(likesDoc.exists() ? likesDoc.data().count : 0);
             setDislikes(dislikesDoc.exists() ? dislikesDoc.data().count : 0);
-          } catch (countError) {
-            console.warn('Unable to load like/dislike counts:', countError);
-          }
+          }).catch(err => {
+            console.warn('Unable to load like/dislike counts:', err);
+          });
 
-          // Check user's reaction and bookmarks only for signed-in users.
+          // User-specific data (only if logged in)
           if (auth.currentUser) {
-            try {
-              const userLikeDoc = await getDoc(doc(db, 'articles', id, 'userReactions', auth.currentUser.uid));
+            Promise.all([
+              getDoc(doc(db, 'articles', id, 'userReactions', auth.currentUser.uid)),
+              getDoc(doc(db, 'users', auth.currentUser.uid, 'bookmarks', id))
+            ]).then(([userLikeDoc, bookmarkDoc]) => {
               if (userLikeDoc.exists()) {
                 setUserReaction(userLikeDoc.data().type);
               }
-
-              const bookmarkDoc = await getDoc(doc(db, 'users', auth.currentUser.uid, 'bookmarks', id));
               setIsBookmarked(bookmarkDoc.exists());
-            } catch (userMetaError) {
-              console.warn('Unable to load user reaction/bookmark state:', userMetaError);
-            }
+            }).catch(err => {
+              console.warn('Unable to load user reaction/bookmark state:', err);
+            });
           }
 
-          // Fetch comments if allowed.
-          try {
-            const commentsQuery = query(collection(db, 'articles', id, 'comments'), orderBy('createdAt', 'desc'));
-            const commentsSnap = await getDocs(commentsQuery);
-            const commentsData = commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setComments(commentsData);
-          } catch (commentsError) {
-            console.warn('Unable to load article comments:', commentsError);
-          }
 
-          // Fetch related articles from the same category.
+          // Fetch related articles from the same category (optimized query)
           if (articleData.category) {
             try {
-              const allArticlesQuery = query(collection(db, 'articles'), limit(50));
-              const allSnap = await getDocs(allArticlesQuery);
-              const related = allSnap.docs
+              const relatedQuery = query(
+                collection(db, 'articles'),
+                where('category', '==', articleData.category),
+                limit(4)
+              );
+              const relatedSnap = await getDocs(relatedQuery);
+              const related = relatedSnap.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as Article))
-                .filter(item => item.category === articleData.category && item.id !== id)
-                .sort((a, b) => {
-                  const dateA = new Date(a.publishedAt || 0).getTime();
-                  const dateB = new Date(b.publishedAt || 0).getTime();
-                  return dateB - dateA;
-                })
+                .filter(item => item.id !== id)
                 .slice(0, 3);
               setRelatedArticles(related);
             } catch (relatedError) {
@@ -132,6 +120,20 @@ export default function ArticlePage() {
 
     fetchArticle();
   }, [id]);
+
+  // Load comments when comments section is opened
+  useEffect(() => {
+    if (showComments && id) {
+      getDocs(query(collection(db, 'articles', id, 'comments'), orderBy('createdAt', 'desc')))
+        .then(commentsSnap => {
+          const commentsData = commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setComments(commentsData);
+        })
+        .catch(err => {
+          console.warn('Unable to load article comments:', err);
+        });
+    }
+  }, [showComments, id]);
 
   if (loading || article === undefined) {
     return (

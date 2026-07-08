@@ -578,8 +578,8 @@ export default function AdminDashboard() {
     const message = [fbTitle, fbExcerpt].filter(Boolean).join('\n\n').trim();
 
     // Use Facebook JavaScript SDK feed dialog with explicit content
-    if (window.FB) {
-      window.FB.ui({
+    if ((window as any).FB) {
+      (window as any).FB.ui({
         method: 'feed',
         link: articleUrl,
         picture: fbImage,
