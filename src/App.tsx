@@ -11,6 +11,7 @@ import Profile from './pages/Profile';
 import ArticlePage from './pages/ArticlePage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import ImageGenerator from './pages/ImageGenerator';
 import AdminRoute from './components/AdminRoute';
 import DesktopNav from './components/DesktopNav';
 import MobileNav from './components/MobileNav';
@@ -153,6 +154,7 @@ function App() {
             <Route path="/article/:id" element={<ArticlePage />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/admin/image-generator" element={<AdminRoute><ImageGenerator /></AdminRoute>} />
           </Routes>
         </motion.main>
       </AnimatePresence>

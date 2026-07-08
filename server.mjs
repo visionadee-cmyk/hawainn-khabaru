@@ -244,10 +244,15 @@ app.delete('/api/facebook/post/:postId', async (req, res) => {
 });
 
 app.get('/api/facebook/insights', async (req, res) => {
+  console.log('Facebook insights endpoint called');
   const pageId = process.env.FACEBOOK_PAGE_ID;
   const accessToken = await getValidPageAccessToken(process.env.FACEBOOK_PAGE_ACCESS_TOKEN);
 
+  console.log('Page ID:', pageId ? 'configured' : 'missing');
+  console.log('Access Token:', accessToken ? 'configured' : 'missing');
+
   if (!pageId || !accessToken) {
+    console.log('Missing credentials');
     return res.status(500).json({
       success: false,
       error: 'Facebook page credentials are not configured on the server.',
@@ -255,34 +260,36 @@ app.get('/api/facebook/insights', async (req, res) => {
   }
 
   try {
-    // Fetch page insights for page views, likes, and followers
-    const metrics = 'page_views,page_fan_adds,page_fan_removes,page_fans';
-    const response = await fetch(
-      `https://graph.facebook.com/v20.0/${pageId}/insights?metric=${metrics}&period=day&access_token=${accessToken}`
-    );
+    // Fetch page info for current likes/followers count (simpler approach without insights)
+    const url = `https://graph.facebook.com/v20.0/${pageId}?fields=fan_count,followers_count&access_token=${accessToken}`;
+    console.log('Fetching from:', url.replace(accessToken, 'TOKEN_HIDDEN'));
+    
+    const pageInfoResponse = await fetch(url);
 
-    const data = await response.json().catch(() => ({}));
+    const pageInfoData = await pageInfoResponse.json().catch(() => ({}));
+    console.log('Response status:', pageInfoResponse.status);
+    console.log('Response data:', JSON.stringify(pageInfoData).substring(0, 200));
 
-    if (!response.ok) {
-      return res.status(response.status).json({
+    if (!pageInfoResponse.ok) {
+      return res.status(pageInfoResponse.status).json({
         success: false,
-        error: data.error?.message || 'Facebook API request failed.',
+        error: pageInfoData.error?.message || 'Facebook API request failed.',
       });
     }
 
-    // Also fetch page info for current likes/followers count
-    const pageInfoResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${pageId}?fields=fan_count,followers_count&access_token=${accessToken}`
-    );
-
-    const pageInfoData = await pageInfoResponse.json().catch(() => ({}));
-
     const insights = {
-      page_views: data.data?.find((m) => m.name === 'page_views')?.values[0]?.value || 0,
+      page_views: 'N/A', // Insights not available without proper permissions
       page_likes: pageInfoData.fan_count || 0,
       page_followers: pageInfoData.followers_count || 0,
     };
 
+    console.log('Returning insights:', insights);
+    
+    // Add cache-control headers to prevent browser caching
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     return res.json({ success: true, insights });
   } catch (error) {
     console.error('Facebook Insights API Error:', error);

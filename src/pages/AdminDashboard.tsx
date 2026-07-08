@@ -8,7 +8,7 @@ import { categories } from '../data/mockData';
 import { postToFacebook, deleteFromFacebook, getFacebookPageInsights } from '../utils/facebook';
 import { uploadImage } from '../utils/cloudinary';
 
-type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners';
+type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners' | 'imageGenerator';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -34,6 +34,7 @@ export default function AdminDashboard() {
       createNews: 'Create News',
       analytics: 'Analytics',
       settings: 'Settings',
+      imageGenerator: 'Image Generator',
       newsDescription: 'Create and publish news articles.',
       title: 'Title',
       titleDv: 'Title (Dhivehi)',
@@ -156,6 +157,7 @@ export default function AdminDashboard() {
       createNews: 'ޚަބަރު އުފައްދާ',
       analytics: 'ތަޙުލީލް',
       settings: 'ސެޓިންގްސް',
+      imageGenerator: 'އިމޭޖް ޖެނެރޭޓަރ',
       newsDescription: 'ޚަބަރު ލިޔުމަށާއި ޝާއިޢު ކުރުމަށް',
       title: 'ސުރުޚީ',
       titleDv: 'ސުރުޚީ (ދިވެހި)',
@@ -362,7 +364,13 @@ export default function AdminDashboard() {
 
 
   // Load Facebook insights
-  const loadFacebookInsights = async () => {
+  const loadFacebookInsights = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
+    }
+    if (loadingInsights) return;
     setLoadingInsights(true);
     try {
       const result = await getFacebookPageInsights();
@@ -376,6 +384,7 @@ export default function AdminDashboard() {
     } finally {
       setLoadingInsights(false);
     }
+    return false;
   };
 
   // Helper function to parse user agent for old records
@@ -817,6 +826,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
               className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
               aria-label="Toggle language"
@@ -825,6 +835,7 @@ export default function AdminDashboard() {
               {language === 'en' ? '🇬🇧' : '🇲🇻'}
             </button>
             <button
+              type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
               aria-label="Toggle theme"
@@ -857,10 +868,16 @@ export default function AdminDashboard() {
       <>
         {/* Tabs */}
         <div className="flex gap-3 border-b border-slate-800 pb-4">
-          {(['articles', 'manage', 'banners', 'analytics', 'settings'] as const).map((tab) => (
+          {(['articles', 'manage', 'banners', 'analytics', 'settings', 'imageGenerator'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => {
+                if (tab === 'imageGenerator') {
+                  navigate('/admin/image-generator');
+                } else {
+                  setActiveTab(tab);
+                }
+              }}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 activeTab === tab
                   ? 'bg-brand-500 text-slate-950'
@@ -872,6 +889,7 @@ export default function AdminDashboard() {
               {tab === 'banners' && t.manageBanners}
               {tab === 'analytics' && t.analytics}
               {tab === 'settings' && t.settings}
+              {tab === 'imageGenerator' && t.imageGenerator}
             </button>
           ))}
         </div>
@@ -1433,13 +1451,27 @@ export default function AdminDashboard() {
             <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-white">{t.facebookPage}</h3>
-                <button
-                  onClick={loadFacebookInsights}
-                  disabled={loadingInsights}
-                  className="rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800/80 disabled:opacity-50"
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.nativeEvent.stopImmediatePropagation();
+                    loadFacebookInsights();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.nativeEvent.stopImmediatePropagation();
+                      loadFacebookInsights();
+                    }
+                  }}
+                  className={`rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800/80 cursor-pointer select-none ${loadingInsights ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {loadingInsights ? t.loadingInsights : t.refreshInsights}
-                </button>
+                </div>
               </div>
               <div className="mt-6 space-y-4">
                 {facebookInsights ? (
