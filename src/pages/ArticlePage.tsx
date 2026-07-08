@@ -72,7 +72,20 @@ export default function ArticlePage() {
             console.warn('Unable to load like/dislike counts:', err);
           });
 
-
+          // User-specific data (only if logged in)
+          if (auth.currentUser) {
+            Promise.all([
+              getDoc(doc(db, 'articles', id, 'userReactions', auth.currentUser.uid)),
+              getDoc(doc(db, 'users', auth.currentUser.uid, 'bookmarks', id))
+            ]).then(([userLikeDoc, bookmarkDoc]) => {
+              if (userLikeDoc.exists()) {
+                setUserReaction(userLikeDoc.data().type);
+              }
+              setIsBookmarked(bookmarkDoc.exists());
+            }).catch(err => {
+              console.warn('Unable to load user reaction/bookmark state:', err);
+            });
+          }
 
           // Fetch related articles from the same category (optimized query)
           if (articleData.category) {
