@@ -15,7 +15,7 @@ export type Article = {
   author: string;
   views: number;
   readingTime: string;
-  body: string[];
+  body: string[] | string;
   videoUrl?: string;
   trending: boolean;
 };

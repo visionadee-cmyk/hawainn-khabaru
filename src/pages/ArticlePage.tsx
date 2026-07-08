@@ -37,6 +37,7 @@ export default function ArticlePage() {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [commentReactions, setCommentReactions] = useState<Record<string, 'like' | 'dislike' | null>>({});
 
   useEffect(() => {
     if (!id) {
@@ -92,7 +93,8 @@ export default function ArticlePage() {
           try {
             const commentsQuery = query(collection(db, 'articles', id, 'comments'), orderBy('createdAt', 'desc'));
             const commentsSnap = await getDocs(commentsQuery);
-            setComments(commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const commentsData = commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setComments(commentsData);
           } catch (commentsError) {
             console.warn('Unable to load article comments:', commentsError);
           }
@@ -264,13 +266,71 @@ export default function ArticlePage() {
         createdAt: new Date().toISOString()
       });
       setNewComment('');
-      
+
       // Refresh comments
       const commentsQuery = query(collection(db, 'articles', id, 'comments'), orderBy('createdAt', 'desc'));
       const commentsSnap = await getDocs(commentsQuery);
-      setComments(commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const commentsData = commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setComments(commentsData);
     } catch (error) {
       console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleCommentReaction = async (commentId: string, type: 'like' | 'dislike') => {
+    if (!auth.currentUser || !id) return;
+
+    try {
+      const userReactionRef = doc(db, 'articles', id, 'comments', commentId, 'userReactions', auth.currentUser.uid);
+      const userReactionDoc = await getDoc(userReactionRef);
+
+      if (userReactionDoc.exists()) {
+        const currentType = userReactionDoc.data().type;
+
+        if (currentType === type) {
+          // Remove reaction
+          await deleteDoc(userReactionRef);
+          await updateCommentReactionCount(commentId, type, -1);
+          setCommentReactions(prev => ({ ...prev, [commentId]: null }));
+        } else {
+          // Change reaction
+          await setDoc(userReactionRef, { type, createdAt: new Date().toISOString() });
+          await updateCommentReactionCount(commentId, currentType, -1);
+          await updateCommentReactionCount(commentId, type, 1);
+          setCommentReactions(prev => ({ ...prev, [commentId]: type }));
+        }
+      } else {
+        // Add new reaction
+        await setDoc(userReactionRef, { type, createdAt: new Date().toISOString() });
+        await updateCommentReactionCount(commentId, type, 1);
+        setCommentReactions(prev => ({ ...prev, [commentId]: type }));
+      }
+    } catch (error) {
+      console.error('Error handling comment reaction:', error);
+    }
+  };
+
+  const updateCommentReactionCount = async (commentId: string, type: 'like' | 'dislike', delta: number) => {
+    if (!id) return;
+    try {
+      const countRef = doc(db, 'articles', id, 'comments', commentId, type === 'like' ? 'likes' : 'dislikes', 'count');
+      const countDoc = await getDoc(countRef);
+      const currentCount = countDoc.exists() ? countDoc.data().count : 0;
+      await setDoc(countRef, { count: currentCount + delta });
+
+      // Update local comment state
+      setComments(prev => prev.map(comment => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            likes: type === 'like' ? (comment.likes || 0) + delta : comment.likes,
+            dislikes: type === 'dislike' ? (comment.dislikes || 0) + delta : comment.dislikes,
+          };
+        }
+        return comment;
+      }));
+    } catch (error) {
+      console.error('Error updating comment reaction count:', error);
     }
   };
 
@@ -326,9 +386,40 @@ export default function ArticlePage() {
               <p className="text-sm leading-7 text-white lg:text-slate-600">{article.excerpt}</p>
             </div>
             <div className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-soft">
-              {article.body.map((paragraph, index) => (
-                <p key={index} className="text-base leading-8 text-slate-700">{paragraph}</p>
-              ))}
+              {(() => {
+                const bodyText = Array.isArray(article.body) ? article.body.join(' ') : article.body;
+                if (typeof bodyText !== 'string') return null;
+
+                // Split text into paragraphs after every 2 full stops
+                const paragraphs: string[] = [];
+                let currentParagraph = '';
+                let fullStopCount = 0;
+
+                for (let i = 0; i < bodyText.length; i++) {
+                  const char = bodyText[i];
+                  currentParagraph += char;
+
+                  if (char === '.') {
+                    fullStopCount++;
+                    if (fullStopCount === 2) {
+                      paragraphs.push(currentParagraph.trim());
+                      currentParagraph = '';
+                      fullStopCount = 0;
+                    }
+                  }
+                }
+
+                // Add any remaining text
+                if (currentParagraph.trim()) {
+                  paragraphs.push(currentParagraph.trim());
+                }
+
+                return paragraphs.map((paragraph: string, index: number) => (
+                  paragraph && (
+                    <p key={index} className="text-base leading-8 text-slate-700">{paragraph}</p>
+                  )
+                ));
+              })()}
             </div>
             <div className="flex flex-col gap-3 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-soft sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
@@ -379,7 +470,7 @@ export default function ArticlePage() {
 
             {/* Comments Section */}
             {showComments && (
-              <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-soft">
+              <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-900">ކޮމެންޓްތައް</h3>
                 
                 {auth.currentUser ? (
@@ -422,7 +513,7 @@ export default function ArticlePage() {
             )}
           </div>
           <aside className="space-y-5">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-soft">
+            <div>
               <h3 className="text-xl font-semibold text-slate-900">ގުޅުން ލިޔުންތައް</h3>
               <div className="mt-4 space-y-3 text-sm text-slate-700">
                 {related.map((item: Article) => (
@@ -437,7 +528,7 @@ export default function ArticlePage() {
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-soft">
+            <div>
               <h3 className="text-xl font-semibold text-slate-900">ކޮމެންޓް</h3>
               <p className="mt-3 text-sm leading-7 text-slate-500">ކޮމެންޓް ސެކްޝަން ހިމެނޭ. ފަހުން އިތުރު ފީޗާތަކެއް އިތުރު ކުރެވޭނެ</p>
             </div>
