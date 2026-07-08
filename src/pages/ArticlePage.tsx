@@ -529,10 +529,6 @@ export default function ArticlePage() {
                 ))}
               </div>
             </div>
-            <div>
-              <h3>ކޮމެންޓް</h3>
-              <p>ކޮމެންޓް ސެކްޝަން ހިމެނޭ. ފަހުން އިތުރު ފީޗާތަކެއް އިތުރު ކުރެވޭނެ</p>
-            </div>
           </aside>
         </div>
       </motion.section>
