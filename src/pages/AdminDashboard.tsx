@@ -341,44 +341,23 @@ export default function AdminDashboard() {
     }
   };
 
-  // Load visitor tracking data from secure backend
+  // Load visitor tracking data from Firestore (real-time)
   useEffect(() => {
     if (!user) return;
 
-    let isMounted = true;
+    const visitorQuery = query(collection(db, 'visitors'), orderBy('timestamp', 'desc'), limit(1000));
+    const unsubscribe = onSnapshot(visitorQuery, (snapshot) => {
+      const visitors = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
+      setVisitorDetails(visitors);
 
-    const fetchVisitorDetails = async () => {
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch('/api/visitors', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      // Calculate unique visitors based on user agent (as a proxy for unique users)
+      const uniqueUserAgents = new Set(visitors.map((item: any) => item.userAgent)).size;
+      setUniqueVisitors(uniqueUserAgents);
+    }, (error) => {
+      console.error('Error fetching visitors:', error);
+    });
 
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Failed to fetch visitors');
-        }
-
-        if (!isMounted) return;
-
-        const visitors = Array.isArray(data.visitors) ? data.visitors : [];
-        setVisitorDetails(visitors);
-
-        const uniqueUserAgents = new Set(visitors.map((item: any) => item.userAgent)).size;
-        setUniqueVisitors(uniqueUserAgents);
-      } catch (error) {
-        console.error('Error fetching visitors:', error);
-      }
-    };
-
-    fetchVisitorDetails();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => unsubscribe();
   }, [user]);
 
   // Load Facebook insights
@@ -530,28 +509,22 @@ export default function AdminDashboard() {
         createdAt: serverTimestamp(),
       });
 
-      try {
-        const fbResult = await shareArticleToFacebook({
-          id: articleId,
-          title: titleDv || title,
-          titleEn: title,
-          excerpt: excerptDv || excerpt,
-          excerptEn: excerpt,
-          image: finalImageUrl,
-        });
+      // Open Facebook share dialog for manual posting (better visibility)
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const articleUrl = `${appUrl}/article/${articleId}`;
+      const fbTitle = titleDv || title;
+      const fbExcerpt = excerptDv || excerpt;
+      const message = [fbTitle, fbExcerpt].filter(Boolean).join('\n\n').trim();
 
-        if (fbResult.success && fbResult.postId) {
-          await updateDoc(doc(db, 'articles', articleId), { facebookPostId: fbResult.postId });
-          setMessage(t.postedToFb);
-        } else {
-          console.warn('Facebook auto-post failed:', fbResult.error);
-          setMessage(t.newsCreated);
-        }
-      } catch (facebookError) {
-        console.error('Facebook auto-post error:', facebookError);
-        setMessage(t.newsCreated);
-      }
-      
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}&quote=${encodeURIComponent(message)}`;
+      window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+
+      await updateDoc(doc(db, 'articles', articleId), { facebookPostId: 'manual-share' });
+      setMessage(t.postedToFb);
+
+      // Don't reload dashboard to allow viewing console logs
+      // loadDashboard();
+
       setTitle('');
       setTitleDv('');
       setExcerpt('');
@@ -561,7 +534,8 @@ export default function AdminDashboard() {
       setParagraphs([{ dv: '', en: '' }]);
       setTrending(false);
       setBreaking(false);
-      loadDashboard();
+      // Don't reload dashboard to allow viewing console logs
+      // loadDashboard();
     } catch (error) {
       setMessage(t.newsError);
       console.error(error);
@@ -600,21 +574,41 @@ export default function AdminDashboard() {
     const articleUrl = `${appUrl}/article/${article.id}`;
     const fbTitle = article.title || article.titleEn || '';
     const fbExcerpt = article.excerpt || article.excerptEn || '';
-    return postToFacebook(fbTitle, fbExcerpt, article.image, articleUrl);
+    const fbImage = article.image || '';
+    const message = [fbTitle, fbExcerpt].filter(Boolean).join('\n\n').trim();
+
+    // Use Facebook JavaScript SDK feed dialog with explicit content
+    if (window.FB) {
+      window.FB.ui({
+        method: 'feed',
+        link: articleUrl,
+        picture: fbImage,
+        name: fbTitle,
+        caption: 'ހަވާއިން ޙަބަރު',
+        description: fbExcerpt,
+      }, (response: any) => {
+        if (response && !response.error_message) {
+          updateDoc(doc(db, 'articles', article.id), { facebookPostId: 'manual-share' });
+        }
+      });
+    } else {
+      // Fallback to URL-based sharing with quote parameter
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}&quote=${encodeURIComponent(message)}`;
+      window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+    }
+
+    // Mark as posted (user will complete the post manually)
+    await updateDoc(doc(db, 'articles', article.id), { facebookPostId: 'manual-share' });
+    setMessage(t.postedToFb);
   };
 
-  const handlePostToFacebook = async (article: any) => {
+  const handlePostToFacebook = async (article: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     try {
-      const fbResult = await shareArticleToFacebook(article);
-      
-      if (fbResult.success && fbResult.postId) {
-        await updateDoc(doc(db, 'articles', article.id), { facebookPostId: fbResult.postId });
-        setMessage(article.facebookPostId ? 'Reposted to Facebook' : t.postedToFb);
-        loadDashboard();
-      } else {
-        setMessage(t.postToFbError);
-        console.error('Failed to post to Facebook:', fbResult.error);
-      }
+      await shareArticleToFacebook(article);
     } catch (error) {
       setMessage(t.postToFbError);
       console.error(error);
@@ -1080,7 +1074,8 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handlePostToFacebook(article)}
+                          type="button"
+                          onClick={(e) => handlePostToFacebook(article, e)}
                           className="rounded-xl border border-blue-600 px-3 py-1.5 text-sm text-blue-400 transition hover:bg-blue-600/20"
                         >
                           {t.postToFb}

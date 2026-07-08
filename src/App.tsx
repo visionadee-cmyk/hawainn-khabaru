@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 import Home from './pages/Home';
 import Categories from './pages/Categories';
 import Videos from './pages/Videos';
@@ -14,9 +16,6 @@ import DesktopNav from './components/DesktopNav';
 import MobileNav from './components/MobileNav';
 import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
-
-
-
 import AdBanner from './components/AdBanner';
 import NewsTicker from './components/NewsTicker';
 
@@ -97,15 +96,10 @@ function App() {
           visitTime: new Date().toLocaleTimeString(),
           deviceFingerprint,
           isSameDevice,
+          timestamp: serverTimestamp(),
         };
 
-        await fetch('/api/visitors', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(visitorData),
-        });
+        await addDoc(collection(db, 'visitors'), visitorData);
 
         // Mark this session as tracked
         sessionStorage.setItem('sessionTracked', 'true');

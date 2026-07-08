@@ -18,5 +18,31 @@
   <body class="bg-slate-950 text-slate-100 min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      // Load Facebook SDK
+      const fbAppId = import.meta.env.VITE_FACEBOOK_APP_ID || '';
+
+      window.fbAsyncInit = function() {
+        if (window.FB && fbAppId) {
+          window.FB.init({
+            appId: fbAppId,
+            xfbml: true,
+            version: 'v20.0'
+          });
+        }
+      };
+
+      (function(d, s, id) {
+        const js = d.createElement(s);
+        js.id = id;
+        js.src = 'https://connect.facebook.net/en_US/sdk.js';
+        const fjs = d.getElementsByTagName(s)[0];
+        if (fjs) {
+          fjs.parentNode.insertBefore(js, fjs);
+        } else {
+          d.head.appendChild(js);
+        }
+      }(document, 'script', 'facebook-jssdk'));
+    </script>
   </body>
 </html>

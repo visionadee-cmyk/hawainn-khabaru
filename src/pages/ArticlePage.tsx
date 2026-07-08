@@ -160,6 +160,12 @@ export default function ArticlePage() {
 
   const related = relatedArticles;
 
+  // Open Graph meta tags for Facebook sharing
+  const ogTitle = article.title || '';
+  const ogDescription = article.excerpt || '';
+  const ogImage = article.image || '';
+  const ogUrl = `${window.location.origin}/article/${id}`;
+
   // Handler functions
   const handleBookmark = async () => {
     if (!auth.currentUser || !id) return;
@@ -279,17 +285,22 @@ export default function ArticlePage() {
   return (
     <div className="space-y-8 text-right">
       <Helmet>
-        <title>{article?.title} | ހަވާއިން ޙަބަރު</title>
-        <meta property="og:title" content={article?.title} />
-        <meta property="og:description" content={article?.excerpt} />
-        <meta property="og:image" content={article?.image} />
-        <meta property="og:image:url" content={article?.image} />
-        <meta property="og:image:secure_url" content={article?.image} />
-        <meta property="og:image:type" content="image/jpeg" />
+        <title>{ogTitle} | ހަވާއިން ޙަބަރު</title>
+        <meta name="description" content={ogDescription} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:url" content={ogImage} />
+        <meta property="og:image:secure_url" content={ogImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:url" content={window.location.href} />
-        <meta name="twitter:image" content={article?.image} />
+        <meta property="og:url" content={ogUrl} />
+        <meta property="og:site_name" content="ހަވާއިން ޙަބަރު" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDescription} />
+        <meta name="twitter:image" content={ogImage} />
       </Helmet>
       <PromoBanner location="article" position="top" />
       <motion.section className="lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-soft sm:p-8">

@@ -9,6 +9,10 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envFilePath = path.join(__dirname, '.env');
+
 // Initialize Firebase Admin
 let db;
 try {
@@ -30,9 +34,6 @@ try {
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const envFilePath = path.join(__dirname, '.env');
 
 const saveAccessToken = (token) => {
   if (!token) return;
@@ -146,31 +147,28 @@ app.post('/api/facebook/post', async (req, res) => {
   }
 
   const message = [title, excerpt].filter(Boolean).join('\n\n').trim();
-  const messageWithLink = articleUrl ? `${message}\n\nRead more: ${articleUrl}` : message;
 
   try {
-    let endpoint;
-    let requestBody;
+    // Use feed endpoint with link and picture parameters for maximum visibility
+    const endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
+    const requestBody = {
+      message,
+      access_token: accessToken,
+      published: true,
+    };
 
-    // If image URL is provided, use photos endpoint for better visibility
-    if (imageUrl) {
-      endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
-      requestBody = {
-        url: imageUrl,
-        caption: messageWithLink,
-        access_token: accessToken,
-        published: true,
-      };
-    } else {
-      // If no image, use feed endpoint
-      endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
-      requestBody = {
-        message: messageWithLink,
-        access_token: accessToken,
-        published: true,
-        link: articleUrl,
-      };
+    // Add link for the article URL
+    if (articleUrl) {
+      requestBody.link = articleUrl;
     }
+
+    // Add picture parameter for the image URL
+    if (imageUrl) {
+      requestBody.picture = imageUrl;
+    }
+
+    console.log('Using FEED endpoint with link and picture parameters');
+    console.log('Request body:', requestBody);
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -181,16 +179,16 @@ app.post('/api/facebook/post', async (req, res) => {
     });
 
     const data = await response.json().catch(() => ({}));
-    console.log('Facebook API Response:', { status: response.status, data });
+    console.log('Facebook API Response:', { status: response.status, data, error: data.error });
 
     if (!response.ok) {
+      console.error('Facebook API Error Details:', data);
       return res.status(response.status).json({
         success: false,
-        error: data.error?.message || 'Facebook API request failed.',
+        error: data.error?.message || data.error?.error?.message || 'Facebook API request failed.',
       });
     }
 
-    // Photos endpoint returns {id: "postId"} while feed returns {id: "postId"}
     return res.json({
       success: true,
       postId: data.id,
