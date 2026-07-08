@@ -514,7 +514,7 @@ export default function ArticlePage() {
           </div>
           <aside className="space-y-5">
             <div>
-              <h3>ގުޅުން ލިޔުންތައް</h3>
+              <h3 className="text-slate-900">ގުޅުން ލިޔުންތައް</h3>
               <div className="mt-4 space-y-3 text-sm text-slate-700">
                 {related.map((item: Article) => (
                   <button
