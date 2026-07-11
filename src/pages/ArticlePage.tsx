@@ -548,7 +548,7 @@ export default function ArticlePage() {
                     onClick={() => navigate(`/article/${item.id}`)}
                   >
                     <p className="font-semibold text-slate-900">{item.title}</p>
-                    <p className="mt-1 text-[13px] text-slate-500">{item.publishedAt}</p>
+                    <p className="mt-1 text-[13px] text-slate-500">{getRelativeTime(item.publishedAt)}</p>
                   </button>
                 ))}
               </div>
