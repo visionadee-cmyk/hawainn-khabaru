@@ -3,19 +3,31 @@ import { motion } from 'framer-motion';
 import type { Article } from '../data/mockData';
 import { categories } from '../data/mockData';
 
-const getRelativeTime = (dateString: string) => {
-  const date = new Date(dateString);
+const getRelativeTime = (dateValue: any) => {
+  let date: Date;
+  
+  if (dateValue && typeof dateValue === 'object' && dateValue.seconds) {
+    // Firebase Timestamp
+    date = new Date(dateValue.seconds * 1000);
+  } else if (typeof dateValue === 'string') {
+    // ISO string
+    date = new Date(dateValue);
+  } else {
+    return 'އަވަސްޓެއް ނުވެއެވެ';
+  }
+  
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
+  if (diffMs < 0) return 'އަންނަވަނީ';
   if (diffMins < 1) return 'އަންނަވަނީ';
   if (diffMins < 60) return `${diffMins} މިނިޓު ކުރިން`;
   if (diffHours < 24) return `${diffHours} ގަޑިއިރު ކުރިން`;
   if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
-  return dateString;
+  return date.toLocaleDateString('dv-MV');
 };
 
 export default function ArticleCard({ article }: { article: Article }) {

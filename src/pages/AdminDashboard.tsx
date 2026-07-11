@@ -312,6 +312,109 @@ export default function AdminDashboard() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dhivehiFontRef = useRef<HTMLFontFace | null>(null);
+
+  // Load Dhivehi font
+  useEffect(() => {
+    const font = new FontFace('Dhivehi', 'url(/fonts/Dhivehi.ttf)');
+    font.load().then((loadedFont) => {
+      dhivehiFontRef.current = loadedFont;
+      document.fonts.add(loadedFont);
+    }).catch((error) => {
+      console.error('Failed to load Dhivehi font:', error);
+    });
+  }, []);
+
+  // Real-time preview regeneration
+  useEffect(() => {
+    if (!uploadedImage || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      const logo = new Image();
+      logo.onload = () => {
+        const logoSize = Math.min(canvas.width, canvas.height) * 0.15;
+        const logoPadding = 20;
+        ctx.drawImage(
+          logo,
+          canvas.width - logoSize - logoPadding,
+          logoPadding,
+          logoSize,
+          logoSize
+        );
+
+        if (overlayText) {
+          const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
+          ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
+          const textX = canvas.width / 2;
+          const textY = canvas.height - 20;
+          const textMetrics = ctx.measureText(overlayText);
+          const textWidth = textMetrics.width;
+          const textHeight = fontSize * 1.5;
+          const bannerPadding = 20;
+
+          ctx.fillStyle = bannerColor;
+          ctx.fillRect(
+            textX - textWidth / 2 - bannerPadding,
+            textY - textHeight,
+            textWidth + bannerPadding * 2,
+            textHeight + 10
+          );
+
+          ctx.fillStyle = fontColor;
+          ctx.fillText(overlayText, textX, textY);
+        }
+
+        const dataUrl = canvas.toDataURL('image/png');
+        setGeneratedImage(dataUrl);
+      };
+
+      logo.onerror = () => {
+        if (overlayText) {
+          const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
+          ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
+          const textX = canvas.width / 2;
+          const textY = canvas.height - 20;
+          const textMetrics = ctx.measureText(overlayText);
+          const textWidth = textMetrics.width;
+          const textHeight = fontSize * 1.5;
+          const bannerPadding = 20;
+
+          ctx.fillStyle = bannerColor;
+          ctx.fillRect(
+            textX - textWidth / 2 - bannerPadding,
+            textY - textHeight,
+            textWidth + bannerPadding * 2,
+            textHeight + 10
+          );
+
+          ctx.fillStyle = fontColor;
+          ctx.fillText(overlayText, textX, textY);
+        }
+
+        const dataUrl = canvas.toDataURL('image/png');
+        setGeneratedImage(dataUrl);
+      };
+
+      logo.src = '/HAWA LOGO.jpg';
+    };
+
+    img.src = uploadedImage;
+  }, [uploadedImage, overlayText, bannerColor, fontSize, fontColor, fontStyle]);
   
   // Notifications state
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -1760,105 +1863,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Generate Button */}
-              <button
-                onClick={() => {
-                  if (!uploadedImage || !canvasRef.current) return;
-                  setIsGenerating(true);
-
-                  const canvas = canvasRef.current;
-                  const ctx = canvas.getContext('2d');
-                  if (!ctx) return;
-
-                  const img = new Image();
-                  img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-
-                    const logo = new Image();
-                    logo.onload = () => {
-                      const logoSize = Math.min(canvas.width, canvas.height) * 0.15;
-                      const logoPadding = 20;
-                      ctx.drawImage(
-                        logo,
-                        canvas.width - logoSize - logoPadding,
-                        logoPadding,
-                        logoSize,
-                        logoSize
-                      );
-
-                      if (overlayText) {
-                        ctx.font = `${fontStyle} ${fontSize}px Arial`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'bottom';
-
-                        const textX = canvas.width / 2;
-                        const textY = canvas.height - 20;
-                        const textMetrics = ctx.measureText(overlayText);
-                        const textWidth = textMetrics.width;
-                        const textHeight = fontSize * 1.5;
-                        const bannerPadding = 20;
-
-                        ctx.fillStyle = bannerColor;
-                        ctx.fillRect(
-                          textX - textWidth / 2 - bannerPadding,
-                          textY - textHeight,
-                          textWidth + bannerPadding * 2,
-                          textHeight + 10
-                        );
-
-                        ctx.fillStyle = fontColor;
-                        ctx.fillText(overlayText, textX, textY);
-                      }
-
-                      const dataUrl = canvas.toDataURL('image/png');
-                      setGeneratedImage(dataUrl);
-                      setIsGenerating(false);
-                    };
-
-                    logo.onerror = () => {
-                      if (overlayText) {
-                        ctx.font = `${fontStyle} ${fontSize}px Arial`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'bottom';
-
-                        const textX = canvas.width / 2;
-                        const textY = canvas.height - 20;
-                        const textMetrics = ctx.measureText(overlayText);
-                        const textWidth = textMetrics.width;
-                        const textHeight = fontSize * 1.5;
-                        const bannerPadding = 20;
-
-                        ctx.fillStyle = bannerColor;
-                        ctx.fillRect(
-                          textX - textWidth / 2 - bannerPadding,
-                          textY - textHeight,
-                          textWidth + bannerPadding * 2,
-                          textHeight + 10
-                        );
-
-                        ctx.fillStyle = fontColor;
-                        ctx.fillText(overlayText, textX, textY);
-                      }
-
-                      const dataUrl = canvas.toDataURL('image/png');
-                      setGeneratedImage(dataUrl);
-                      setIsGenerating(false);
-                    };
-
-                    logo.src = '/logo.png';
-                  };
-
-                  img.src = uploadedImage;
-                }}
-                disabled={!uploadedImage || isGenerating}
-                className="w-full rounded-2xl bg-brand-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-brand-400 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed"
-              >
-                {isGenerating ? 'ޖެނެރޭޓް ކުރަމުން...' : 'އިމޭޖް ޖެނެރޭޓް ކުރުން'}
-              </button>
-
-              {/* Preview Section */}
+              {/* Real-time Preview Section */}
               {uploadedImage && (
                 <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
                   <h4 className="font-semibold text-white mb-3">ޕްރިވިއު</h4>

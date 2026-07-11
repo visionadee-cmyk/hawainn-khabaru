@@ -27,14 +27,24 @@ export default function Notifications() {
           let time = 'އަވަސްޓެއް ނުވެއެވެ';
           
           if (createdAt) {
-            const date = new Date(createdAt.seconds * 1000);
+            let date: Date;
+            if (typeof createdAt === 'object' && createdAt.seconds) {
+              date = new Date(createdAt.seconds * 1000);
+            } else if (typeof createdAt === 'string') {
+              date = new Date(createdAt);
+            } else {
+              date = new Date();
+            }
+            
             const now = new Date();
             const diffMs = now.getTime() - date.getTime();
             const diffMins = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMs / 3600000);
             const diffDays = Math.floor(diffMs / 86400000);
             
-            if (diffMins < 1) {
+            if (diffMs < 0) {
+              time = 'އަންނަވަނީ';
+            } else if (diffMins < 1) {
               time = 'ހަތަރުވަނަ ހިސާބުގައި';
             } else if (diffMins < 60) {
               time = `${diffMins} މިނިޓް ކުރިން`;
