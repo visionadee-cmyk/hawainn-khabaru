@@ -13,6 +13,7 @@ export default function Videos() {
       try {
         const videosQuery = query(
           collection(db, 'articles'),
+          where('videoUrl', '!=', null),
           orderBy('createdAt', 'desc'),
           limit(12)
         );

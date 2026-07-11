@@ -11,11 +11,12 @@ export default function Home() {
   const [articlesState, setArticlesState] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(8);
 
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(20));
+        const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(articlesQuery);
         const articles = snapshot.docs.map(docSnap => ({
           id: docSnap.id,
@@ -34,7 +35,8 @@ export default function Home() {
 
   const heroArticles = articlesState.slice(0, 3);
   const trending = useMemo(() => articlesState.filter((article) => article.trending), [articlesState]);
-  const latest = useMemo(() => articlesState.slice(0, 8), [articlesState]);
+  const latest = useMemo(() => articlesState.slice(0, visibleCount), [articlesState, visibleCount]);
+  const hasMore = articlesState.length > visibleCount;
 
   if (loading) {
     return (
@@ -141,13 +143,22 @@ export default function Home() {
             <p className="text-xs uppercase tracking-[0.24em] text-sky-600">ސުރުޚީ</p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">ފަހުގެ ޚަބަރު</h2>
           </div>
-          <Link to="/categories" className="text-sm font-semibold text-sky-700 hover:text-sky-900">އިތުރަށް ބަލާ</Link>
         </div>
         <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {latest.map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
         </div>
+        {hasMore && (
+          <div className="mt-6 text-center">
+            <button 
+              onClick={() => setVisibleCount(prev => prev + 8)}
+              className="rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+            >
+              އިތުރަށް ބަލާ
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Bottom Promo Banner */}

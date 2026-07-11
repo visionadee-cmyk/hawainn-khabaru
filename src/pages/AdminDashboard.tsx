@@ -8,7 +8,7 @@ import { categories } from '../data/mockData';
 import { postToFacebook, deleteFromFacebook, getFacebookPageInsights } from '../utils/facebook';
 import { uploadImage } from '../utils/cloudinary';
 
-type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners' | 'imageGenerator';
+type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners' | 'imageGenerator' | 'notifications';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -313,6 +313,10 @@ export default function AdminDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
+  // Notifications state
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+  
   // Article image upload state
   const [articleFile, setArticleFile] = useState<File | null>(null);
   const [uploadingArticle, setUploadingArticle] = useState(false);
@@ -371,6 +375,61 @@ export default function AdminDashboard() {
 
     return () => unsubscribe();
   }, [user]);
+
+  // Load notifications data
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const articlesQuery = query(
+          collection(db, 'articles'),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        );
+        const snapshot = await getDocs(articlesQuery);
+        
+        const articleNotifications = snapshot.docs.map(doc => {
+          const data = doc.data();
+          const title = data.title || data.titleEn || 'ޚަބަރު';
+          const createdAt = data.createdAt;
+          let time = 'އަވަސްޓެއް ނުވެއެވެ';
+          
+          if (createdAt) {
+            const date = new Date(createdAt.seconds * 1000);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) {
+              time = 'ހަތަރުވަނަ ހިސާބުގައި';
+            } else if (diffMins < 60) {
+              time = `${diffMins} މިނިޓް ކުރިން`;
+            } else if (diffHours < 24) {
+              time = `${diffHours} ގަޑިއަކު ކުރިން`;
+            } else {
+              time = `${diffDays} ދުވަސް ކުރިން`;
+            }
+          }
+          
+          return {
+            id: doc.id,
+            title: `އާ ޚަބަރު: ${title}`,
+            time,
+            articleId: doc.id
+          };
+        });
+        
+        setNotifications(articleNotifications);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
 
 
   // Load Facebook insights
@@ -851,7 +910,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         {message && (
-          <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-400">
+          <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400 animate-in fade-in slide-in-from-top-2 duration-300">
             {message}
           </div>
         )}
@@ -861,7 +920,7 @@ export default function AdminDashboard() {
       <>
         {/* Tabs */}
         <div className="flex gap-1 sm:gap-2 border-b border-slate-800 pb-3 sm:pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
-          {(['articles', 'manage', 'banners', 'analytics', 'settings', 'imageGenerator'] as const).map((tab) => (
+          {(['articles', 'manage', 'banners', 'analytics', 'settings', 'imageGenerator', 'notifications'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -877,6 +936,7 @@ export default function AdminDashboard() {
               {tab === 'analytics' && t.analytics}
               {tab === 'settings' && t.settings}
               {tab === 'imageGenerator' && t.imageGenerator}
+              {tab === 'notifications' && 'ނޮޓިފިކޭޝަންތައް'}
             </button>
           ))}
         </div>
@@ -1845,6 +1905,29 @@ export default function AdminDashboard() {
 
               {/* Hidden Canvas */}
               <canvas ref={canvasRef} className="hidden" />
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-white">ނޮޓިފިކޭޝަންތައް</h3>
+            <div className="mt-6 space-y-4">
+              {loadingNotifications ? (
+                <p className="text-center text-slate-400">ލޯޑް ކުރަމުން...</p>
+              ) : notifications.length === 0 ? (
+                <p className="text-center text-slate-400">ނޮޓިފިކޭޝަންތައް ނެތް</p>
+              ) : (
+                notifications.map((notification: any) => (
+                  <div key={notification.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5">
+                    <div className="flex items-center justify-between gap-4 text-sm text-slate-300">
+                      <p>{notification.title}</p>
+                      <span className="text-xs text-slate-500">{notification.time}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
