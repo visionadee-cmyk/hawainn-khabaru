@@ -8,19 +8,31 @@ import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, addDoc,
 import { auth } from '../firebase';
 import PromoBanner from '../components/PromoBanner';
 
-const getRelativeTime = (dateString: string) => {
-  const date = new Date(dateString);
+const getRelativeTime = (dateValue: any) => {
+  let date: Date;
+  
+  if (dateValue && typeof dateValue === 'object' && dateValue.seconds) {
+    // Firebase Timestamp
+    date = new Date(dateValue.seconds * 1000);
+  } else if (typeof dateValue === 'string') {
+    // ISO string
+    date = new Date(dateValue);
+  } else {
+    return 'އަވަސްޓެއް ނުވެއެވެ';
+  }
+  
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
+  if (diffMs < 0) return 'އަންނަވަނީ';
   if (diffMins < 1) return 'އަންނަވަނީ';
   if (diffMins < 60) return `${diffMins} މިނިޓު ކުރިން`;
   if (diffHours < 24) return `${diffHours} ގަޑިއިރު ކުރިން`;
   if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
-  return dateString;
+  return date.toLocaleDateString('dv-MV');
 };
 
 export default function ArticlePage() {
@@ -53,7 +65,12 @@ export default function ArticlePage() {
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          const articleData = { id: docSnap.id, ...docSnap.data() } as Article;
+          const data = docSnap.data();
+          const articleData = {
+            id: docSnap.id,
+            ...data,
+            publishedAt: data.createdAt || data.publishedAt
+          } as Article;
           setArticle(articleData);
 
           // Non-blocking view count increment
@@ -97,7 +114,14 @@ export default function ArticlePage() {
               );
               const relatedSnap = await getDocs(relatedQuery);
               const related = relatedSnap.docs
-                .map(doc => ({ id: doc.id, ...doc.data() } as Article))
+                .map(doc => {
+                  const data = doc.data();
+                  return {
+                    id: doc.id,
+                    ...data,
+                    publishedAt: data.createdAt || data.publishedAt
+                  } as Article;
+                })
                 .filter(item => item.id !== id)
                 .slice(0, 3);
               setRelatedArticles(related);

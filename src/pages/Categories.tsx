@@ -6,19 +6,31 @@ import { db } from '../firebase';
 import PromoBanner from '../components/PromoBanner';
 import { categories } from '../data/mockData';
 
-const getRelativeTime = (dateString: string) => {
-  const date = new Date(dateString);
+const getRelativeTime = (dateValue: any) => {
+  let date: Date;
+  
+  if (dateValue && typeof dateValue === 'object' && dateValue.seconds) {
+    // Firebase Timestamp
+    date = new Date(dateValue.seconds * 1000);
+  } else if (typeof dateValue === 'string') {
+    // ISO string
+    date = new Date(dateValue);
+  } else {
+    return 'އަވަސްޓެއް ނުވެއެވެ';
+  }
+  
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
+  if (diffMs < 0) return 'އަންނަވަނީ';
   if (diffMins < 1) return 'އަންނަވަނީ';
   if (diffMins < 60) return `${diffMins} މިނިޓު ކުރިން`;
   if (diffHours < 24) return `${diffHours} ގަޑިއިރު ކުރިން`;
   if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
-  return dateString;
+  return date.toLocaleDateString('dv-MV');
 };
 
 export default function Categories() {
@@ -39,10 +51,14 @@ export default function Categories() {
           limit(20)
         );
         const snapshot = await getDocs(articlesQuery);
-        const articlesData = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        }));
+        const articlesData = snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            ...data,
+            publishedAt: data.createdAt || data.publishedAt
+          };
+        });
         setArticles(articlesData);
       } catch (error) {
         console.error('Error fetching articles:', error);

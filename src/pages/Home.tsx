@@ -18,10 +18,14 @@ export default function Home() {
       try {
         const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(articlesQuery);
-        const articles = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as Article));
+        const articles = snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            ...data,
+            publishedAt: data.createdAt || data.publishedAt
+          } as Article;
+        });
         setArticlesState(articles);
       } catch (error) {
         console.error('Error fetching articles:', error);

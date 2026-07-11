@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export default function Videos() {
@@ -14,12 +14,17 @@ export default function Videos() {
         const videosQuery = query(
           collection(db, 'articles'),
           where('videoUrl', '!=', null),
-          orderBy('createdAt', 'desc'),
-          limit(12)
+          limit(50)
         );
         const snapshot = await getDocs(videosQuery);
-        const articlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setVideoArticles(articlesData);
+        const articlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        // Sort by createdAt client-side to avoid composite index requirement
+        articlesData.sort((a: any, b: any) => {
+          const aTime = a.createdAt?.seconds || 0;
+          const bTime = b.createdAt?.seconds || 0;
+          return bTime - aTime;
+        });
+        setVideoArticles(articlesData.slice(0, 12));
       } catch (error) {
         console.error('Error fetching videos:', error);
       } finally {
