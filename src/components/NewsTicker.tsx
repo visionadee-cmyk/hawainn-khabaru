@@ -8,9 +8,23 @@ export default function NewsTicker() {
   useEffect(() => {
     const fetchLatestNews = async () => {
       try {
-        const newsQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(10));
+        // Calculate timestamp for 12 hours ago
+        const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+        const newsQuery = query(
+          collection(db, 'articles'),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        );
         const snapshot = await getDocs(newsQuery);
-        const items = snapshot.docs.map(doc => doc.data().title || doc.data().titleEn || '');
+        // Filter to only include articles from the last 12 hours
+        const items = snapshot.docs
+          .filter(doc => {
+            const createdAt = doc.data().createdAt;
+            if (!createdAt) return false;
+            const articleDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+            return articleDate >= twelveHoursAgo;
+          })
+          .map(doc => doc.data().title || doc.data().titleEn || '');
         setNewsItems(items);
       } catch (error) {
         console.error('Error fetching news ticker:', error);
@@ -24,7 +38,12 @@ export default function NewsTicker() {
     <div className="w-full bg-sky-600 text-white py-1 px-4 overflow-hidden flex items-center">
       <span className="font-bold mr-4">ފަހުގެ ޚަބަރު:</span>
       <div className="flex-1 whitespace-nowrap overflow-hidden">
-        <div className="inline-block animate-marquee">
+        <div 
+          className="inline-block animate-marquee"
+          style={{
+            animationDuration: `${Math.max(20, newsItems.length * 4)}s`
+          }}
+        >
           {newsItems.length > 0 ? (
             newsItems.map((item, idx) => (
               <span key={idx} className="mx-8">

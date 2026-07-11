@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
@@ -282,9 +282,8 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState(categories[0].id);
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
   const [readingTime, setReadingTime] = useState(language === 'en' ? '5 min' : '5މިނިޓް');
-  const [paragraphs, setParagraphs] = useState<Array<{ dv: string; en: string }>>([
-    { dv: '', en: '' }
-  ]);
+  const [body, setBody] = useState('');
+  const [bodyEn, setBodyEn] = useState('');
   const [trending, setTrending] = useState(false);
   const [breaking, setBreaking] = useState(false);
   const [englishText, setEnglishText] = useState('');
@@ -297,11 +296,22 @@ export default function AdminDashboard() {
   const [editExcerptDv, setEditExcerptDv] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editCategory, setEditCategory] = useState('');
-  const [editParagraphs, setEditParagraphs] = useState<Array<{ dv: string; en: string }>>([
-    { dv: '', en: '' }
-  ]);
+  const [editBody, setEditBody] = useState('');
+  const [editBodyEn, setEditBodyEn] = useState('');
+  const [editReadingTime, setEditReadingTime] = useState('5މިނިޓް');
   const [editTrending, setEditTrending] = useState(false);
   const [editBreaking, setEditBreaking] = useState(false);
+  
+  // Image Generator state
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [overlayText, setOverlayText] = useState('');
+  const [bannerColor, setBannerColor] = useState('#000000');
+  const [fontSize, setFontSize] = useState(40);
+  const [fontColor, setFontColor] = useState('#ffffff');
+  const [fontStyle, setFontStyle] = useState<'normal' | 'bold' | 'italic' | 'bold italic'>('bold');
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Article image upload state
   const [articleFile, setArticleFile] = useState<File | null>(null);
@@ -512,25 +522,14 @@ export default function AdminDashboard() {
         author: user.email || 'admin',
         views: 0,
         readingTime,
-        body: paragraphs.map(p => p.dv).filter(Boolean).join(' '),
-        bodyEn: paragraphs.map(p => p.en).filter(Boolean).join(' '),
+        body,
+        bodyEn,
         trending,
         breaking,
         createdAt: serverTimestamp(),
       });
 
-      // Open Facebook share dialog for manual posting (better visibility)
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const articleUrl = `${appUrl}/article/${articleId}`;
-      const fbTitle = titleDv || title;
-      const fbExcerpt = excerptDv || excerpt;
-      const message = [fbTitle, fbExcerpt].filter(Boolean).join('\n\n').trim();
-
-      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}&quote=${encodeURIComponent(message)}`;
-      window.open(facebookShareUrl, '_blank', 'width=600,height=400');
-
-      await updateDoc(doc(db, 'articles', articleId), { facebookPostId: 'manual-share' });
-      setMessage(t.postedToFb);
+      setMessage(t.newsCreated);
 
       // Don't reload dashboard to allow viewing console logs
       // loadDashboard();
@@ -541,7 +540,8 @@ export default function AdminDashboard() {
       setExcerptDv('');
       setImageUrl('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
       setArticleFile(null);
-      setParagraphs([{ dv: '', en: '' }]);
+      setBody('');
+      setBodyEn('');
       setTrending(false);
       setBreaking(false);
       // Don't reload dashboard to allow viewing console logs
@@ -633,17 +633,9 @@ export default function AdminDashboard() {
     setEditExcerptDv(article.excerpt || '');
     setEditImageUrl(article.image || '');
     setEditCategory(article.category || '');
-    
-    // Convert body arrays to paragraph objects
-    const bodyDv = article.body || [];
-    const bodyEn = article.bodyEn || [];
-    const maxLength = Math.max(bodyDv.length, bodyEn.length);
-    const paragraphArray = Array.from({ length: maxLength }, (_, i) => ({
-      dv: bodyDv[i] || '',
-      en: bodyEn[i] || ''
-    }));
-    
-    setEditParagraphs(paragraphArray.length > 0 ? paragraphArray : [{ dv: '', en: '' }]);
+    setEditBody(Array.isArray(article.body) ? article.body.join(' ') : (article.body || ''));
+    setEditBodyEn(Array.isArray(article.bodyEn) ? article.bodyEn.join(' ') : (article.bodyEn || ''));
+    setEditReadingTime(article.readingTime || '5މިނިޓް');
     setEditTrending(article.trending || false);
     setEditBreaking(article.breaking || false);
   };
@@ -674,8 +666,9 @@ export default function AdminDashboard() {
         excerptEn: editExcerpt,
         image: finalImageUrl,
         category: editCategory,
-        body: editParagraphs.map(p => p.dv).filter(Boolean),
-        bodyEn: editParagraphs.map(p => p.en).filter(Boolean),
+        body: editBody,
+        bodyEn: editBodyEn,
+        readingTime: editReadingTime,
         trending: editTrending,
         breaking: editBreaking,
       });
@@ -822,13 +815,13 @@ export default function AdminDashboard() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">{t.adminPanel}</p>
-            <h2 className="mt-2 text-3xl font-bold text-white">{t.adminDashboard}</h2>
+            <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">{t.adminDashboard}</h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
+              className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
               aria-label="Toggle language"
               title="Toggle language"
             >
@@ -837,19 +830,19 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
+              className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
               aria-label="Toggle theme"
               title="Toggle theme"
             >
               {theme === 'dark' ? '🌙' : '☀️'}
             </button>
             {user && (
-            <div className="rounded-3xl bg-slate-950/90 p-4 text-sm text-slate-300 shadow-soft">
+            <div className="rounded-3xl bg-slate-950/90 p-3 sm:p-4 text-xs sm:text-sm text-slate-300 shadow-soft">
               <p>{t.news}: {articlesCount}</p>
               <p>{t.visits}: {visitorCount}</p>
               <button
                 onClick={handleLogout}
-                className="mt-3 w-full rounded-2xl border border-rose-600 px-3 py-2 text-rose-400 transition hover:bg-rose-600/20"
+                className="mt-2 sm:mt-3 w-full rounded-2xl border border-rose-600 px-2 sm:px-3 py-2 text-rose-400 transition hover:bg-rose-600/20"
               >
                 {t.logout}
               </button>
@@ -867,18 +860,12 @@ export default function AdminDashboard() {
       {/* Admin Content */}
       <>
         {/* Tabs */}
-        <div className="flex gap-3 border-b border-slate-800 pb-4">
+        <div className="flex gap-1 sm:gap-2 border-b border-slate-800 pb-3 sm:pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
           {(['articles', 'manage', 'banners', 'analytics', 'settings', 'imageGenerator'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => {
-                if (tab === 'imageGenerator') {
-                  navigate('/admin/image-generator');
-                } else {
-                  setActiveTab(tab);
-                }
-              }}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-full px-1.5 sm:px-3 py-1 sm:py-2 text-[10px] sm:text-sm font-semibold transition whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab
                   ? 'bg-brand-500 text-slate-950'
                   : 'border border-slate-700 text-slate-300 hover:border-slate-500'
@@ -907,7 +894,7 @@ export default function AdminDashboard() {
                     value={titleDv}
                     onChange={(e) => setTitleDv(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.titleDv}
+                    placeholder="ޚަބަރުގެ ހެޑްލައިން ލިޔުން..."
                     required
                   />
                 </div>
@@ -917,24 +904,41 @@ export default function AdminDashboard() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.title}
+                    placeholder="Type headline in English..."
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.category}</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                  required
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {language === 'en' ? cat.titleEn : cat.title}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">{t.category}</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    required
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">Category (English)</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    required
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.titleEn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-300">{t.excerptDv}</label>
@@ -942,7 +946,7 @@ export default function AdminDashboard() {
                   value={excerptDv}
                   onChange={(e) => setExcerptDv(e.target.value)}
                   className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                  placeholder={t.excerptDv}
+                  placeholder="ޚަބަރުގެ ކުރުތަކެއް ލިޔުން..."
                   required
                 />
               </div>
@@ -952,7 +956,7 @@ export default function AdminDashboard() {
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
                   className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                  placeholder={t.excerpt}
+                  placeholder="Type short description in English..."
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -962,7 +966,7 @@ export default function AdminDashboard() {
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder="https://..."
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
                 <div>
@@ -977,70 +981,42 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
-                <input
+                <select
                   value={readingTime}
                   onChange={(e) => setReadingTime(e.target.value)}
                   className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                  placeholder={language === 'en' ? '5 min' : '5 މިނިޓް'}
                   required
-                />
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((min) => (
+                    <option key={min} value={`${min}މިނިޓް`}>
+                      {min} މިނިޓް / {min} min
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold text-slate-300">{t.newsContent}</label>
-                  <button
-                    type="button"
-                    onClick={() => setParagraphs([...paragraphs, { dv: '', en: '' }])}
-                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition"
-                  >
-                    + {t.addParagraph}
-                  </button>
-                </div>
-                {paragraphs.map((para, index) => (
-                  <div key={index} className="mb-4 p-4 border border-slate-700 rounded-2xl bg-slate-950/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-slate-400">{t.paragraph} {index + 1}</span>
-                      {paragraphs.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setParagraphs(paragraphs.filter((_, i) => i !== index))}
-                          className="text-xs text-rose-400 hover:text-rose-300 transition"
-                        >
-                          {t.removeParagraph}
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
-                        <textarea
-                          value={para.dv}
-                          onChange={(e) => {
-                            const newParagraphs = [...paragraphs];
-                            newParagraphs[index].dv = e.target.value;
-                            setParagraphs(newParagraphs);
-                          }}
-                          className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
-                          placeholder={t.paragraphDv}
-                          required={index === 0}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
-                        <textarea
-                          value={para.en}
-                          onChange={(e) => {
-                            const newParagraphs = [...paragraphs];
-                            newParagraphs[index].en = e.target.value;
-                            setParagraphs(newParagraphs);
-                          }}
-                          className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
-                          placeholder={t.paragraphEn}
-                        />
-                      </div>
-                    </div>
+                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.newsContent}</label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
+                    <textarea
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                      placeholder="ޚަބަރުގެ މައްޗާ ލިޔުން..."
+                      required
+                    />
                   </div>
-                ))}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
+                    <textarea
+                      value={bodyEn}
+                      onChange={(e) => setBodyEn(e.target.value)}
+                      className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                      placeholder="Type article content in English..."
+                    />
+                  </div>
+                </div>
               </div>
               <div className="flex gap-4">
                 <label className="inline-flex items-center gap-2 text-slate-300">
@@ -1265,7 +1241,7 @@ export default function AdminDashboard() {
                       value={editTitleDv}
                       onChange={(e) => setEditTitleDv(e.target.value)}
                       className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                      placeholder={t.titleDv}
+                      placeholder="ޚަބަރުގެ ހެޑްލައިން ލިޔުން..."
                       required
                     />
                   </div>
@@ -1275,24 +1251,41 @@ export default function AdminDashboard() {
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                      placeholder={t.title}
+                      placeholder="Type headline in English..."
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.category}</label>
-                  <select
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    required
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {language === 'en' ? cat.titleEn : cat.title}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300">{t.category}</label>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      required
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300">Category (English)</label>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      required
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.titleEn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-300">{t.excerptDv}</label>
@@ -1300,7 +1293,7 @@ export default function AdminDashboard() {
                     value={editExcerptDv}
                     onChange={(e) => setEditExcerptDv(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.excerptDv}
+                    placeholder="ޚަބަރުގެ ކުރުތަކެއް ލިޔުން..."
                     required
                   />
                 </div>
@@ -1310,7 +1303,7 @@ export default function AdminDashboard() {
                     value={editExcerpt}
                     onChange={(e) => setEditExcerpt(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder={t.excerpt}
+                    placeholder="Type short description in English..."
                   />
                 </div>
                 <div>
@@ -1319,7 +1312,7 @@ export default function AdminDashboard() {
                     value={editImageUrl}
                     onChange={(e) => setEditImageUrl(e.target.value)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                    placeholder="https://..."
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
                 <div>
@@ -1332,61 +1325,43 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-semibold text-slate-300">{t.newsContent}</label>
-                    <button
-                      type="button"
-                      onClick={() => setEditParagraphs([...editParagraphs, { dv: '', en: '' }])}
-                      className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition"
-                    >
-                      + {t.addParagraph}
-                    </button>
-                  </div>
-                  {editParagraphs.map((para, index) => (
-                    <div key={index} className="mb-4 p-4 border border-slate-700 rounded-2xl bg-slate-950/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-400">{t.paragraph} {index + 1}</span>
-                        {editParagraphs.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setEditParagraphs(editParagraphs.filter((_, i) => i !== index))}
-                            className="text-xs text-rose-400 hover:text-rose-300 transition"
-                          >
-                            {t.removeParagraph}
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
-                          <textarea
-                            value={para.dv}
-                            onChange={(e) => {
-                              const newParagraphs = [...editParagraphs];
-                              newParagraphs[index].dv = e.target.value;
-                              setEditParagraphs(newParagraphs);
-                            }}
-                            className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
-                            placeholder={t.paragraphDv}
-                            required={index === 0}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
-                          <textarea
-                            value={para.en}
-                            onChange={(e) => {
-                              const newParagraphs = [...editParagraphs];
-                              newParagraphs[index].en = e.target.value;
-                              setEditParagraphs(newParagraphs);
-                            }}
-                            className="min-h-[100px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
-                            placeholder={t.paragraphEn}
-                          />
-                        </div>
-                      </div>
+                  <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
+                  <select
+                    value={editReadingTime}
+                    onChange={(e) => setEditReadingTime(e.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    required
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((min) => (
+                      <option key={min} value={`${min}މިނިޓް`}>
+                        {min} މިނިޓް / {min} min
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.newsContent}</label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
+                      <textarea
+                        value={editBody}
+                        onChange={(e) => setEditBody(e.target.value)}
+                        className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                        placeholder="ޚަބަރުގެ މައްޗާ ލިޔުން..."
+                        required
+                      />
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
+                      <textarea
+                        value={editBodyEn}
+                        onChange={(e) => setEditBodyEn(e.target.value)}
+                        className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                        placeholder="Type article content in English..."
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="flex gap-4">
                   <label className="inline-flex items-center gap-2 text-slate-300">
@@ -1592,6 +1567,284 @@ export default function AdminDashboard() {
                   {t.delete}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Image Generator Tab */}
+        {activeTab === 'imageGenerator' && (
+          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-white">{t.imageGenerator}</h3>
+            <div className="mt-6 space-y-6">
+              {/* Upload Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">އިމޭޖް އަޕްލޯޑް ކުރުން</h4>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        setUploadedImage(event.target?.result as string);
+                        setGeneratedImage(null);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                />
+              </div>
+
+              {/* Text Input Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް އިންޕުޓް</h4>
+                <input
+                  type="text"
+                  value={overlayText}
+                  onChange={(e) => setOverlayText(e.target.value)}
+                  placeholder="އެއްވެސް ޓެކްސްޓެއް ލިޔުން..."
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                />
+              </div>
+
+              {/* Color Picker Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ބެނަރ ކަލަރ</h4>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={bannerColor}
+                    onChange={(e) => setBannerColor(e.target.value)}
+                    className="h-12 w-20 rounded-lg border border-slate-700 bg-slate-950/80 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-400">{bannerColor}</span>
+                </div>
+              </div>
+
+              {/* Font Size Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ފޮންޓް ސައިޒް</h4>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="20"
+                    max="100"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="flex-1 h-2 rounded-lg bg-slate-700 appearance-none cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-400 w-16 text-right">{fontSize}px</span>
+                </div>
+              </div>
+
+              {/* Font Color Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ފޮންޓް ކަލަރ</h4>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={fontColor}
+                    onChange={(e) => setFontColor(e.target.value)}
+                    className="h-12 w-20 rounded-lg border border-slate-700 bg-slate-950/80 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-400">{fontColor}</span>
+                </div>
+              </div>
+
+              {/* Font Style Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ފޮންޓް ސްޓައިލް</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setFontStyle('normal')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      fontStyle === 'normal'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Normal
+                  </button>
+                  <button
+                    onClick={() => setFontStyle('bold')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      fontStyle === 'bold'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bold
+                  </button>
+                  <button
+                    onClick={() => setFontStyle('italic')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      fontStyle === 'italic'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Italic
+                  </button>
+                  <button
+                    onClick={() => setFontStyle('bold italic')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      fontStyle === 'bold italic'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bold Italic
+                  </button>
+                </div>
+              </div>
+
+              {/* Generate Button */}
+              <button
+                onClick={() => {
+                  if (!uploadedImage || !canvasRef.current) return;
+                  setIsGenerating(true);
+
+                  const canvas = canvasRef.current;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) return;
+
+                  const img = new Image();
+                  img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const logo = new Image();
+                    logo.onload = () => {
+                      const logoSize = Math.min(canvas.width, canvas.height) * 0.15;
+                      const logoPadding = 20;
+                      ctx.drawImage(
+                        logo,
+                        canvas.width - logoSize - logoPadding,
+                        logoPadding,
+                        logoSize,
+                        logoSize
+                      );
+
+                      if (overlayText) {
+                        ctx.font = `${fontStyle} ${fontSize}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+
+                        const textX = canvas.width / 2;
+                        const textY = canvas.height - 20;
+                        const textMetrics = ctx.measureText(overlayText);
+                        const textWidth = textMetrics.width;
+                        const textHeight = fontSize * 1.5;
+                        const bannerPadding = 20;
+
+                        ctx.fillStyle = bannerColor;
+                        ctx.fillRect(
+                          textX - textWidth / 2 - bannerPadding,
+                          textY - textHeight,
+                          textWidth + bannerPadding * 2,
+                          textHeight + 10
+                        );
+
+                        ctx.fillStyle = fontColor;
+                        ctx.fillText(overlayText, textX, textY);
+                      }
+
+                      const dataUrl = canvas.toDataURL('image/png');
+                      setGeneratedImage(dataUrl);
+                      setIsGenerating(false);
+                    };
+
+                    logo.onerror = () => {
+                      if (overlayText) {
+                        ctx.font = `${fontStyle} ${fontSize}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+
+                        const textX = canvas.width / 2;
+                        const textY = canvas.height - 20;
+                        const textMetrics = ctx.measureText(overlayText);
+                        const textWidth = textMetrics.width;
+                        const textHeight = fontSize * 1.5;
+                        const bannerPadding = 20;
+
+                        ctx.fillStyle = bannerColor;
+                        ctx.fillRect(
+                          textX - textWidth / 2 - bannerPadding,
+                          textY - textHeight,
+                          textWidth + bannerPadding * 2,
+                          textHeight + 10
+                        );
+
+                        ctx.fillStyle = fontColor;
+                        ctx.fillText(overlayText, textX, textY);
+                      }
+
+                      const dataUrl = canvas.toDataURL('image/png');
+                      setGeneratedImage(dataUrl);
+                      setIsGenerating(false);
+                    };
+
+                    logo.src = '/logo.png';
+                  };
+
+                  img.src = uploadedImage;
+                }}
+                disabled={!uploadedImage || isGenerating}
+                className="w-full rounded-2xl bg-brand-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-brand-400 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? 'ޖެނެރޭޓް ކުރަމުން...' : 'އިމޭޖް ޖެނެރޭޓް ކުރުން'}
+              </button>
+
+              {/* Preview Section */}
+              {uploadedImage && (
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                  <h4 className="font-semibold text-white mb-3">ޕްރިވިއު</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <h5 className="mb-2 text-sm font-medium text-slate-400">އޮރިޖިނަލް އިމޭޖް</h5>
+                      <img
+                        src={uploadedImage}
+                        alt="Uploaded"
+                        className="h-auto w-full rounded-lg border border-slate-700"
+                      />
+                    </div>
+                    {generatedImage && (
+                      <div>
+                        <h5 className="mb-2 text-sm font-medium text-slate-400">ޖެނެރޭޓް ކުރެވުނު އިމޭޖް</h5>
+                        <img
+                          src={generatedImage}
+                          alt="Generated"
+                          className="h-auto w-full rounded-lg border border-slate-700"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Download Button */}
+              {generatedImage && (
+                <button
+                  onClick={() => {
+                    if (!generatedImage) return;
+                    const link = document.createElement('a');
+                    link.href = generatedImage;
+                    link.download = `generated-image-${Date.now()}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="w-full rounded-2xl bg-emerald-500 px-6 py-3 font-semibold text-white transition hover:bg-emerald-400"
+                >
+                  އިމޭޖް ޑައުންލޯޑް ކުރުން
+                </button>
+              )}
+
+              {/* Hidden Canvas */}
+              <canvas ref={canvasRef} className="hidden" />
             </div>
           </div>
         )}

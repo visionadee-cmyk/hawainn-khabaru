@@ -66,21 +66,21 @@ export default function MobileNav({ theme, setTheme, language, setLanguage }: Mo
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-t border-slate-800 bg-slate-900"
           >
-            <div className="space-y-1 px-3 py-2">
-              <div className="mb-3">
+            <div className="space-y-2 px-3 py-4">
+              <div className="mb-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.24em] text-sky-400">ބައިތައް</p>
-                    <h2 className="mt-1 text-lg font-bold text-white">ހުރިހާ ބައިތައް</h2>
+                    <h2 className="mt-1 text-base sm:text-lg font-bold text-white">ހުރިހާ ބައިތައް</h2>
                   </div>
                 </div>
-                <div className="mt-3 grid gap-1">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {categories.map((category) => (
                     <Link 
                       key={category.id} 
                       to={`/categories/${category.id}`}
                       onClick={() => setIsOpen(false)}
-                      className={`cursor-pointer rounded-lg border border-slate-700 px-2 py-1.5 ${category.color} bg-opacity-20 transition hover:border-slate-600`}
+                      className={`cursor-pointer rounded-lg border border-slate-700 px-2 py-2 ${category.color} bg-opacity-20 transition hover:border-slate-600`}
                     >
                       <p className="text-[8px] uppercase tracking-[0.2em] text-slate-400">{category.id}</p>
                       <h3 className="mt-0.5 text-xs font-semibold text-white">{category.title}</h3>
@@ -89,7 +89,7 @@ export default function MobileNav({ theme, setTheme, language, setLanguage }: Mo
                 </div>
               </div>
               
-              <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
+              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
                 <span className="text-xs text-slate-300">
                   {language === 'en' ? 'Language' : 'ބަސް'}
                 </span>
