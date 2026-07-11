@@ -312,7 +312,7 @@ export default function AdminDashboard() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dhivehiFontRef = useRef<HTMLFontFace | null>(null);
+  const dhivehiFontRef = useRef<FontFace | null>(null);
 
   // Load Dhivehi font
   useEffect(() => {
