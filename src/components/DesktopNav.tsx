@@ -14,7 +14,7 @@ export default function DesktopNav({ theme, setTheme, language, setLanguage }: D
       <div className="mx-auto flex h-20 max-w-[1600px] items-center justify-between gap-6 px-6">
         {/* Globe icon on the left */}
         <div className="flex items-center gap-4">
-          <img src="/logo.png" alt="Hawainn Khabaru" className="h-12 w-12 object-contain" />
+          <img src="/logo.png" alt="Hawa News" className="h-12 w-12 object-contain" />
         </div>
         {/* Center navigation links */}
         <nav className="flex-1 flex justify-start">
@@ -28,10 +28,10 @@ export default function DesktopNav({ theme, setTheme, language, setLanguage }: D
         </nav>
         {/* Logo on the right */}
         <Link to="/" className="group inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft text-xl lg:text-2xl font-black uppercase tracking-[0.2em] text-slate-900 transition hover:border-slate-300">
-          <img src="/logo.png" alt="Hawainn Khabaru logo" className="h-12 w-12 rounded-3xl object-cover" />
+          <img src="/logo.png" alt="Hawa News logo" className="h-12 w-12 rounded-3xl object-cover" />
           <div className="hidden xl:block">
-            <p className="text-xs text-slate-400">Hawainn Khabaru</p>
-            <p className="text-sm text-slate-700">ހަވާއިން ޚަބަރު</p>
+            <p className="text-xs text-slate-400">Hawa News</p>
+            <p className="text-sm text-slate-700">ހަވާ ނޫސް</p>
           </div>
         </Link>
         {/* Language and Theme toggles */}

@@ -29,9 +29,9 @@ export default function MobileNav({ theme, setTheme, language, setLanguage }: Mo
     <nav className="lg:hidden sticky top-0 z-50 border-b border-slate-800 bg-slate-950 backdrop-blur">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Hawainn Khabaru" className="h-8 w-8 object-contain" />
+          <img src="/logo.png" alt="Hawa News" className="h-8 w-8 object-contain" />
           <span className="text-base font-bold text-white">
-            {language === 'en' ? 'Hawainn Khabaru' : 'ހަވާއިން ޚަބަރު'}
+            {language === 'en' ? 'Hawa News' : 'ހަވާ ނޫސް'}
           </span>
         </div>
         

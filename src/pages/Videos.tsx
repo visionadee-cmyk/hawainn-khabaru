@@ -36,9 +36,9 @@ export default function Videos() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-sky-600">ވީޑިއޯ ޚަބަރު</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">ހަވާއިން ޚަބަރު ވީޑިއޯތައް</h2>
+            <h2 className="mt-2 text-3xl font-bold text-slate-900">ހަވާ ނޫސް ވީޑިއޯތައް</h2>
           </div>
-          <p className="text-sm text-slate-500">ދިވެހި ބަހުން ލޯކަލް ޚަބަރު ވީޑިއޯތައް ބަލާ.</p>
+          <p className="text-sm text-slate-500">ދިވެހި ބަހުން ލޯކަލް ނޫސް ވީޑިއޯތައް ބަލާ.</p>
         </div>
         
         {loading ? (

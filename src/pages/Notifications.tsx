@@ -70,7 +70,7 @@ export default function Notifications() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-emerald-600">ނޮޓިފިކޭޝަންތައް</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">ހަވާއިން ޚަބަރު ނޮޓިފިކޭޝަންތައް</h2>
+            <h2 className="mt-2 text-3xl font-bold text-slate-900">ހަވާ ނޫސް ނޮޓިފިކޭޝަންތައް</h2>
           </div>
           <div className="flex gap-2">
             <button 

@@ -48,7 +48,7 @@ export default function ArticleCard({ article }: { article: Article }) {
           <p className="mt-1 text-sm leading-6 text-slate-600 line-clamp-2">{article.excerpt}</p>
         </Link>
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
-          <span>ހަވާއިން ޚަބަރު</span>
+          <span>ހަވާ ނޫސް</span>
           <span>👁️ {article.views}</span>
         </div>
       </div>
