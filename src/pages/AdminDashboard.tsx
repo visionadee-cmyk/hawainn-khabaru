@@ -305,10 +305,12 @@ export default function AdminDashboard() {
   // Image Generator state
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [overlayText, setOverlayText] = useState('');
+  const [overlayText2, setOverlayText2] = useState('');
   const [bannerColor, setBannerColor] = useState('#000000');
   const [fontSize, setFontSize] = useState(40);
   const [fontColor, setFontColor] = useState('#ffffff');
   const [fontStyle, setFontStyle] = useState<'normal' | 'bold' | 'italic' | 'bold italic'>('bold');
+  const [logoPosition, setLogoPosition] = useState<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center'>('top-right');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -343,26 +345,58 @@ export default function AdminDashboard() {
       logo.onload = () => {
         const logoSize = Math.min(canvas.width, canvas.height) * 0.15;
         const logoPadding = 20;
-        ctx.drawImage(
-          logo,
-          canvas.width - logoSize - logoPadding,
-          logoPadding,
-          logoSize,
-          logoSize
-        );
+        
+        // Calculate logo position
+        let logoX, logoY;
+        switch (logoPosition) {
+          case 'top-left':
+            logoX = logoPadding;
+            logoY = logoPadding;
+            break;
+          case 'top-right':
+            logoX = canvas.width - logoSize - logoPadding;
+            logoY = logoPadding;
+            break;
+          case 'bottom-left':
+            logoX = logoPadding;
+            logoY = canvas.height - logoSize - logoPadding;
+            break;
+          case 'bottom-right':
+            logoX = canvas.width - logoSize - logoPadding;
+            logoY = canvas.height - logoSize - logoPadding;
+            break;
+          case 'center':
+            logoX = (canvas.width - logoSize) / 2;
+            logoY = (canvas.height - logoSize) / 2;
+            break;
+          default:
+            logoX = canvas.width - logoSize - logoPadding;
+            logoY = logoPadding;
+        }
+        
+        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
 
-        if (overlayText) {
-          const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
-          ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'bottom';
+        // Draw text lines
+        const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
+        ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
 
+        const texts = [overlayText, overlayText2].filter(t => t);
+        const textHeight = fontSize * 1.5;
+        const bannerPadding = 20;
+        const totalTextHeight = texts.length * textHeight + (texts.length - 1) * 10;
+        
+        let startY = canvas.height - 20;
+        if (texts.length > 1) {
+          startY = canvas.height - 20 - totalTextHeight + textHeight;
+        }
+
+        texts.forEach((text, index) => {
+          const textY = startY + index * (textHeight + 10);
           const textX = canvas.width / 2;
-          const textY = canvas.height - 20;
-          const textMetrics = ctx.measureText(overlayText);
+          const textMetrics = ctx.measureText(text);
           const textWidth = textMetrics.width;
-          const textHeight = fontSize * 1.5;
-          const bannerPadding = 20;
 
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
@@ -373,26 +407,35 @@ export default function AdminDashboard() {
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(overlayText, textX, textY);
-        }
+          ctx.fillText(text, textX, textY);
+        });
 
         const dataUrl = canvas.toDataURL('image/png');
         setGeneratedImage(dataUrl);
       };
 
       logo.onerror = () => {
-        if (overlayText) {
-          const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
-          ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'bottom';
+        // Draw text lines without logo
+        const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
+        ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
 
+        const texts = [overlayText, overlayText2].filter(t => t);
+        const textHeight = fontSize * 1.5;
+        const bannerPadding = 20;
+        const totalTextHeight = texts.length * textHeight + (texts.length - 1) * 10;
+        
+        let startY = canvas.height - 20;
+        if (texts.length > 1) {
+          startY = canvas.height - 20 - totalTextHeight + textHeight;
+        }
+
+        texts.forEach((text, index) => {
+          const textY = startY + index * (textHeight + 10);
           const textX = canvas.width / 2;
-          const textY = canvas.height - 20;
-          const textMetrics = ctx.measureText(overlayText);
+          const textMetrics = ctx.measureText(text);
           const textWidth = textMetrics.width;
-          const textHeight = fontSize * 1.5;
-          const bannerPadding = 20;
 
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
@@ -403,8 +446,8 @@ export default function AdminDashboard() {
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(overlayText, textX, textY);
-        }
+          ctx.fillText(text, textX, textY);
+        });
 
         const dataUrl = canvas.toDataURL('image/png');
         setGeneratedImage(dataUrl);
@@ -414,7 +457,7 @@ export default function AdminDashboard() {
     };
 
     img.src = uploadedImage;
-  }, [uploadedImage, overlayText, bannerColor, fontSize, fontColor, fontStyle]);
+  }, [uploadedImage, overlayText, overlayText2, bannerColor, fontSize, fontColor, fontStyle, logoPosition]);
   
   // Notifications state
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -1768,8 +1811,72 @@ export default function AdminDashboard() {
                   value={overlayText}
                   onChange={(e) => setOverlayText(e.target.value)}
                   placeholder="އެއްވެސް ޓެކްސްޓެއް ލިޔުން..."
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400 mb-2"
+                />
+                <input
+                  type="text"
+                  value={overlayText2}
+                  onChange={(e) => setOverlayText2(e.target.value)}
+                  placeholder="ދެވަނަ ރޯގަލް (އޮޕްޝަނަލް)"
                   className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                 />
+              </div>
+
+              {/* Logo Position Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ލޮގޯ ޕޮޒިޝަން</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setLogoPosition('top-left')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      logoPosition === 'top-left'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Top Left
+                  </button>
+                  <button
+                    onClick={() => setLogoPosition('top-right')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      logoPosition === 'top-right'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Top Right
+                  </button>
+                  <button
+                    onClick={() => setLogoPosition('center')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      logoPosition === 'center'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Center
+                  </button>
+                  <button
+                    onClick={() => setLogoPosition('bottom-left')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      logoPosition === 'bottom-left'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bottom Left
+                  </button>
+                  <button
+                    onClick={() => setLogoPosition('bottom-right')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      logoPosition === 'bottom-right'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bottom Right
+                  </button>
+                </div>
               </div>
 
               {/* Color Picker Section */}
