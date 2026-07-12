@@ -392,13 +392,43 @@ export default function AdminDashboard() {
 
         const textHeight = fontSize * 1.5;
         const bannerPadding = 20;
+        const textSpacing = 10;
+        
+        // Calculate positions for both text lines
+        let text1Y, text2Y;
+        const [text1Vertical, text1Horizontal] = textPosition.split('-');
+        const [text2Vertical, text2Horizontal] = textPosition2.split('-');
+        
+        // Calculate Y position helper
+        const calculateY = (vertical: string, offset: number = 0) => {
+          switch (vertical) {
+            case 'top':
+              return 20 + textHeight + offset;
+            case 'middle':
+              return canvas.height / 2 + textHeight / 2 + offset;
+            case 'bottom':
+              return canvas.height - 20 + offset;
+            default:
+              const isBottom = vertical === 'bottom';
+              return isBottom ? canvas.height - 20 + offset : canvas.height - 20 + offset;
+          }
+        };
+        
+        // If both texts exist and share the same vertical position, stack them
+        if (overlayText && overlayText2 && text1Vertical === text2Vertical) {
+          const baseY = calculateY(text1Vertical);
+          text1Y = baseY - textHeight - textSpacing;
+          text2Y = baseY;
+        } else {
+          text1Y = overlayText ? calculateY(text1Vertical) : 0;
+          text2Y = overlayText2 ? calculateY(text2Vertical) : 0;
+        }
         
         // Draw first text line if exists
         if (overlayText) {
-          let textX, textY;
-          const [textVertical, textHorizontal] = textPosition.split('-');
+          let textX;
           
-          switch (textHorizontal) {
+          switch (text1Horizontal) {
             case 'left':
               textX = bannerPadding + 50;
               ctx.textAlign = 'left';
@@ -414,20 +444,6 @@ export default function AdminDashboard() {
             default:
               textX = canvas.width / 2;
               ctx.textAlign = 'center';
-          }
-          
-          switch (textVertical) {
-            case 'top':
-              textY = 20 + textHeight;
-              break;
-            case 'middle':
-              textY = canvas.height / 2 + textHeight / 2;
-              break;
-            case 'bottom':
-              textY = canvas.height - 20;
-              break;
-            default:
-              textY = canvas.height - 20;
           }
           
           ctx.textBaseline = 'bottom';
@@ -449,21 +465,20 @@ export default function AdminDashboard() {
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
             bannerX,
-            textY - textHeight,
+            text1Y - textHeight,
             bannerWidth,
             textHeight + 10
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(overlayText, textX, textY);
+          ctx.fillText(overlayText, textX, text1Y);
         }
         
         // Draw second text line if exists with independent position
         if (overlayText2) {
-          let textX, textY;
-          const [textVertical, textHorizontal] = textPosition2.split('-');
+          let textX;
           
-          switch (textHorizontal) {
+          switch (text2Horizontal) {
             case 'left':
               textX = bannerPadding + 50;
               ctx.textAlign = 'left';
@@ -479,20 +494,6 @@ export default function AdminDashboard() {
             default:
               textX = canvas.width / 2;
               ctx.textAlign = 'center';
-          }
-          
-          switch (textVertical) {
-            case 'top':
-              textY = 20 + textHeight;
-              break;
-            case 'middle':
-              textY = canvas.height / 2 + textHeight / 2;
-              break;
-            case 'bottom':
-              textY = canvas.height - 20;
-              break;
-            default:
-              textY = canvas.height - 20;
           }
           
           ctx.textBaseline = 'bottom';
@@ -514,13 +515,13 @@ export default function AdminDashboard() {
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
             bannerX,
-            textY - textHeight,
+            text2Y - textHeight,
             bannerWidth,
             textHeight + 10
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(overlayText2, textX, textY);
+          ctx.fillText(overlayText2, textX, text2Y);
         }
 
         const dataUrl = canvas.toDataURL('image/png');
@@ -534,13 +535,42 @@ export default function AdminDashboard() {
 
         const textHeight = fontSize * 1.5;
         const bannerPadding = 20;
+        const textSpacing = 10;
+        
+        // Calculate positions for both text lines
+        let text1Y, text2Y;
+        const [text1Vertical, text1Horizontal] = textPosition.split('-');
+        const [text2Vertical, text2Horizontal] = textPosition2.split('-');
+        
+        // Calculate Y position helper
+        const calculateY = (vertical: string, offset: number = 0) => {
+          switch (vertical) {
+            case 'top':
+              return 20 + textHeight + offset;
+            case 'middle':
+              return canvas.height / 2 + textHeight / 2 + offset;
+            case 'bottom':
+              return canvas.height - 20 + offset;
+            default:
+              return canvas.height - 20 + offset;
+          }
+        };
+        
+        // If both texts exist and share the same vertical position, stack them
+        if (overlayText && overlayText2 && text1Vertical === text2Vertical) {
+          const baseY = calculateY(text1Vertical);
+          text1Y = baseY - textHeight - textSpacing;
+          text2Y = baseY;
+        } else {
+          text1Y = overlayText ? calculateY(text1Vertical) : 0;
+          text2Y = overlayText2 ? calculateY(text2Vertical) : 0;
+        }
         
         // Draw first text line if exists
         if (overlayText) {
-          let textX, textY;
-          const [textVertical, textHorizontal] = textPosition.split('-');
+          let textX;
           
-          switch (textHorizontal) {
+          switch (text1Horizontal) {
             case 'left':
               textX = bannerPadding + 50;
               ctx.textAlign = 'left';
@@ -556,20 +586,6 @@ export default function AdminDashboard() {
             default:
               textX = canvas.width / 2;
               ctx.textAlign = 'center';
-          }
-          
-          switch (textVertical) {
-            case 'top':
-              textY = 20 + textHeight;
-              break;
-            case 'middle':
-              textY = canvas.height / 2 + textHeight / 2;
-              break;
-            case 'bottom':
-              textY = canvas.height - 20;
-              break;
-            default:
-              textY = canvas.height - 20;
           }
           
           ctx.textBaseline = 'bottom';
@@ -591,21 +607,20 @@ export default function AdminDashboard() {
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
             bannerX,
-            textY - textHeight,
+            text1Y - textHeight,
             bannerWidth,
             textHeight + 10
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(overlayText, textX, textY);
+          ctx.fillText(overlayText, textX, text1Y);
         }
         
         // Draw second text line if exists with independent position
         if (overlayText2) {
-          let textX, textY;
-          const [textVertical, textHorizontal] = textPosition2.split('-');
+          let textX;
           
-          switch (textHorizontal) {
+          switch (text2Horizontal) {
             case 'left':
               textX = bannerPadding + 50;
               ctx.textAlign = 'left';
@@ -621,20 +636,6 @@ export default function AdminDashboard() {
             default:
               textX = canvas.width / 2;
               ctx.textAlign = 'center';
-          }
-          
-          switch (textVertical) {
-            case 'top':
-              textY = 20 + textHeight;
-              break;
-            case 'middle':
-              textY = canvas.height / 2 + textHeight / 2;
-              break;
-            case 'bottom':
-              textY = canvas.height - 20;
-              break;
-            default:
-              textY = canvas.height - 20;
           }
           
           ctx.textBaseline = 'bottom';
@@ -656,13 +657,13 @@ export default function AdminDashboard() {
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
             bannerX,
-            textY - textHeight,
+            text2Y - textHeight,
             bannerWidth,
             textHeight + 10
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(overlayText2, textX, textY);
+          ctx.fillText(overlayText2, textX, text2Y);
         }
 
         const dataUrl = canvas.toDataURL('image/png');
