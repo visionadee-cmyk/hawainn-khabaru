@@ -313,6 +313,7 @@ export default function AdminDashboard() {
   const [logoPosition, setLogoPosition] = useState<'top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-center' | 'middle-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'>('top-right');
   const [logoOpacity, setLogoOpacity] = useState(100);
   const [textPosition, setTextPosition] = useState<'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center' | 'top-left' | 'top-right' | 'middle-center' | 'middle-left' | 'middle-right'>('bottom-center');
+  const [textPosition2, setTextPosition2] = useState<'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center' | 'top-left' | 'top-right' | 'middle-center' | 'middle-left' | 'middle-right'>('bottom-center');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -385,56 +386,52 @@ export default function AdminDashboard() {
         ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
         ctx.globalAlpha = 1;
 
-        // Draw text lines
+        // Draw text lines with independent positions
         const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
         ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
 
-        const texts = [overlayText, overlayText2].filter(t => t);
         const textHeight = fontSize * 1.5;
         const bannerPadding = 20;
-        const totalTextHeight = texts.length * textHeight + (texts.length - 1) * 10;
         
-        // Calculate text position
-        let textX, textY;
-        const [textVertical, textHorizontal] = textPosition.split('-');
-        
-        switch (textHorizontal) {
-          case 'left':
-            textX = bannerPadding + 50;
-            ctx.textAlign = 'left';
-            break;
-          case 'center':
-            textX = canvas.width / 2;
-            ctx.textAlign = 'center';
-            break;
-          case 'right':
-            textX = canvas.width - bannerPadding - 50;
-            ctx.textAlign = 'right';
-            break;
-          default:
-            textX = canvas.width / 2;
-            ctx.textAlign = 'center';
-        }
-        
-        switch (textVertical) {
-          case 'top':
-            textY = 20 + textHeight;
-            break;
-          case 'middle':
-            textY = (canvas.height - totalTextHeight) / 2 + textHeight;
-            break;
-          case 'bottom':
-            textY = canvas.height - 20;
-            break;
-          default:
-            textY = canvas.height - 20;
-        }
-        
-        ctx.textBaseline = 'bottom';
-
-        texts.forEach((text, index) => {
-          const currentTextY = textY + index * (textHeight + 10);
-          const textMetrics = ctx.measureText(text);
+        // Draw first text line if exists
+        if (overlayText) {
+          let textX, textY;
+          const [textVertical, textHorizontal] = textPosition.split('-');
+          
+          switch (textHorizontal) {
+            case 'left':
+              textX = bannerPadding + 50;
+              ctx.textAlign = 'left';
+              break;
+            case 'center':
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+              break;
+            case 'right':
+              textX = canvas.width - bannerPadding - 50;
+              ctx.textAlign = 'right';
+              break;
+            default:
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+          }
+          
+          switch (textVertical) {
+            case 'top':
+              textY = 20 + textHeight;
+              break;
+            case 'middle':
+              textY = canvas.height / 2 + textHeight / 2;
+              break;
+            case 'bottom':
+              textY = canvas.height - 20;
+              break;
+            default:
+              textY = canvas.height - 20;
+          }
+          
+          ctx.textBaseline = 'bottom';
+          const textMetrics = ctx.measureText(overlayText);
           const textWidth = textMetrics.width;
 
           let bannerX, bannerWidth;
@@ -452,70 +449,131 @@ export default function AdminDashboard() {
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
             bannerX,
-            currentTextY - textHeight,
+            textY - textHeight,
             bannerWidth,
             textHeight + 10
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(text, textX, currentTextY);
-        });
+          ctx.fillText(overlayText, textX, textY);
+        }
+        
+        // Draw second text line if exists with independent position
+        if (overlayText2) {
+          let textX, textY;
+          const [textVertical, textHorizontal] = textPosition2.split('-');
+          
+          switch (textHorizontal) {
+            case 'left':
+              textX = bannerPadding + 50;
+              ctx.textAlign = 'left';
+              break;
+            case 'center':
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+              break;
+            case 'right':
+              textX = canvas.width - bannerPadding - 50;
+              ctx.textAlign = 'right';
+              break;
+            default:
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+          }
+          
+          switch (textVertical) {
+            case 'top':
+              textY = 20 + textHeight;
+              break;
+            case 'middle':
+              textY = canvas.height / 2 + textHeight / 2;
+              break;
+            case 'bottom':
+              textY = canvas.height - 20;
+              break;
+            default:
+              textY = canvas.height - 20;
+          }
+          
+          ctx.textBaseline = 'bottom';
+          const textMetrics = ctx.measureText(overlayText2);
+          const textWidth = textMetrics.width;
+
+          let bannerX, bannerWidth;
+          if (ctx.textAlign === 'center') {
+            bannerX = textX - textWidth / 2 - bannerPadding;
+            bannerWidth = textWidth + bannerPadding * 2;
+          } else if (ctx.textAlign === 'left') {
+            bannerX = textX - bannerPadding;
+            bannerWidth = textWidth + bannerPadding * 2;
+          } else {
+            bannerX = textX - textWidth - bannerPadding;
+            bannerWidth = textWidth + bannerPadding * 2;
+          }
+
+          ctx.fillStyle = bannerColor;
+          ctx.fillRect(
+            bannerX,
+            textY - textHeight,
+            bannerWidth,
+            textHeight + 10
+          );
+
+          ctx.fillStyle = fontColor;
+          ctx.fillText(overlayText2, textX, textY);
+        }
 
         const dataUrl = canvas.toDataURL('image/png');
         setGeneratedImage(dataUrl);
       };
 
       logo.onerror = () => {
-        // Draw text lines without logo
+        // Draw text lines without logo with independent positions
         const fontName = dhivehiFontRef.current ? 'Dhivehi' : 'Arial';
         ctx.font = `${fontStyle} ${fontSize}px ${fontName}`;
 
-        const texts = [overlayText, overlayText2].filter(t => t);
         const textHeight = fontSize * 1.5;
         const bannerPadding = 20;
-        const totalTextHeight = texts.length * textHeight + (texts.length - 1) * 10;
         
-        // Calculate text position
-        let textX, textY;
-        const [textVertical, textHorizontal] = textPosition.split('-');
-        
-        switch (textHorizontal) {
-          case 'left':
-            textX = bannerPadding + 50;
-            ctx.textAlign = 'left';
-            break;
-          case 'center':
-            textX = canvas.width / 2;
-            ctx.textAlign = 'center';
-            break;
-          case 'right':
-            textX = canvas.width - bannerPadding - 50;
-            ctx.textAlign = 'right';
-            break;
-          default:
-            textX = canvas.width / 2;
-            ctx.textAlign = 'center';
-        }
-        
-        switch (textVertical) {
-          case 'top':
-            textY = 20 + textHeight;
-            break;
-          case 'middle':
-            textY = (canvas.height - totalTextHeight) / 2 + textHeight;
-            break;
-          case 'bottom':
-            textY = canvas.height - 20;
-            break;
-          default:
-            textY = canvas.height - 20;
-        }
-        
-        ctx.textBaseline = 'bottom';
-
-        texts.forEach((text, index) => {
-          const currentTextY = textY + index * (textHeight + 10);
-          const textMetrics = ctx.measureText(text);
+        // Draw first text line if exists
+        if (overlayText) {
+          let textX, textY;
+          const [textVertical, textHorizontal] = textPosition.split('-');
+          
+          switch (textHorizontal) {
+            case 'left':
+              textX = bannerPadding + 50;
+              ctx.textAlign = 'left';
+              break;
+            case 'center':
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+              break;
+            case 'right':
+              textX = canvas.width - bannerPadding - 50;
+              ctx.textAlign = 'right';
+              break;
+            default:
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+          }
+          
+          switch (textVertical) {
+            case 'top':
+              textY = 20 + textHeight;
+              break;
+            case 'middle':
+              textY = canvas.height / 2 + textHeight / 2;
+              break;
+            case 'bottom':
+              textY = canvas.height - 20;
+              break;
+            default:
+              textY = canvas.height - 20;
+          }
+          
+          ctx.textBaseline = 'bottom';
+          const textMetrics = ctx.measureText(overlayText);
           const textWidth = textMetrics.width;
 
           let bannerX, bannerWidth;
@@ -533,24 +591,89 @@ export default function AdminDashboard() {
           ctx.fillStyle = bannerColor;
           ctx.fillRect(
             bannerX,
-            currentTextY - textHeight,
+            textY - textHeight,
             bannerWidth,
             textHeight + 10
           );
 
           ctx.fillStyle = fontColor;
-          ctx.fillText(text, textX, currentTextY);
-        });
+          ctx.fillText(overlayText, textX, textY);
+        }
+        
+        // Draw second text line if exists with independent position
+        if (overlayText2) {
+          let textX, textY;
+          const [textVertical, textHorizontal] = textPosition2.split('-');
+          
+          switch (textHorizontal) {
+            case 'left':
+              textX = bannerPadding + 50;
+              ctx.textAlign = 'left';
+              break;
+            case 'center':
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+              break;
+            case 'right':
+              textX = canvas.width - bannerPadding - 50;
+              ctx.textAlign = 'right';
+              break;
+            default:
+              textX = canvas.width / 2;
+              ctx.textAlign = 'center';
+          }
+          
+          switch (textVertical) {
+            case 'top':
+              textY = 20 + textHeight;
+              break;
+            case 'middle':
+              textY = canvas.height / 2 + textHeight / 2;
+              break;
+            case 'bottom':
+              textY = canvas.height - 20;
+              break;
+            default:
+              textY = canvas.height - 20;
+          }
+          
+          ctx.textBaseline = 'bottom';
+          const textMetrics = ctx.measureText(overlayText2);
+          const textWidth = textMetrics.width;
+
+          let bannerX, bannerWidth;
+          if (ctx.textAlign === 'center') {
+            bannerX = textX - textWidth / 2 - bannerPadding;
+            bannerWidth = textWidth + bannerPadding * 2;
+          } else if (ctx.textAlign === 'left') {
+            bannerX = textX - bannerPadding;
+            bannerWidth = textWidth + bannerPadding * 2;
+          } else {
+            bannerX = textX - textWidth - bannerPadding;
+            bannerWidth = textWidth + bannerPadding * 2;
+          }
+
+          ctx.fillStyle = bannerColor;
+          ctx.fillRect(
+            bannerX,
+            textY - textHeight,
+            bannerWidth,
+            textHeight + 10
+          );
+
+          ctx.fillStyle = fontColor;
+          ctx.fillText(overlayText2, textX, textY);
+        }
 
         const dataUrl = canvas.toDataURL('image/png');
         setGeneratedImage(dataUrl);
       };
 
-      logo.src = '/HAWA LOGO.jpg';
+      logo.src = '/logo.png';
     };
 
     img.src = uploadedImage;
-  }, [uploadedImage, overlayText, overlayText2, bannerColor, fontSize, fontColor, fontStyle, logoPosition, logoOpacity, textPosition]);
+  }, [uploadedImage, overlayText, overlayText2, bannerColor, fontSize, fontColor, fontStyle, logoPosition, logoOpacity, textPosition, textPosition2]);
   
   // Notifications state
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -2030,7 +2153,7 @@ export default function AdminDashboard() {
 
               {/* Text Position Section */}
               <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް ޕޮޒިޝަން</h4>
+                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް ޕޮޒިޝަން (ފުރަތަމަ ރޯގަލް)</h4>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => setTextPosition('top-left')}
@@ -2116,6 +2239,103 @@ export default function AdminDashboard() {
                     onClick={() => setTextPosition('bottom-right')}
                     className={`rounded-lg px-3 py-2 text-sm transition ${
                       textPosition === 'bottom-right'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bottom Right
+                  </button>
+                </div>
+              </div>
+
+              {/* Text Position 2 Section */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް ޕޮޒިޝަން (ދެވަނަ ރޯގަލް)</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setTextPosition2('top-left')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'top-left'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Top Left
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('top-center')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'top-center'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Top Center
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('top-right')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'top-right'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Top Right
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('middle-left')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'middle-left'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Middle Left
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('middle-center')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'middle-center'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Center
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('middle-right')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'middle-right'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Middle Right
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('bottom-left')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'bottom-left'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bottom Left
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('bottom-center')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'bottom-center'
+                        ? 'bg-brand-500 text-slate-950'
+                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Bottom Center
+                  </button>
+                  <button
+                    onClick={() => setTextPosition2('bottom-right')}
+                    className={`rounded-lg px-3 py-2 text-sm transition ${
+                      textPosition2 === 'bottom-right'
                         ? 'bg-brand-500 text-slate-950'
                         : 'border border-slate-700 text-slate-300 hover:border-slate-500'
                     }`}
