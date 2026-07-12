@@ -16,7 +16,7 @@ export type Article = {
   views: number;
   readingTime: string;
   body: string[] | string;
-  videoUrl?: string;
+  video?: string;
   trending: boolean;
 };
 

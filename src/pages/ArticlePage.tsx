@@ -408,6 +408,17 @@ export default function ArticlePage() {
                 </video>
               </div>
             )}
+            {/* Debug: Show video URL if exists */}
+            {process.env.NODE_ENV === 'development' && article.video && (
+              <div className="rounded-2xl bg-yellow-100 p-2 text-xs text-yellow-800">
+                Video URL: {article.video}
+              </div>
+            )}
+            {process.env.NODE_ENV === 'development' && !article.video && (
+              <div className="rounded-2xl bg-red-100 p-2 text-xs text-red-800">
+                No video found in article data
+              </div>
+            )}
             <div className="space-y-2 text-slate-700">
               <span className="inline-flex rounded-full bg-sky-600/95 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-white">{article.category}</span>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
