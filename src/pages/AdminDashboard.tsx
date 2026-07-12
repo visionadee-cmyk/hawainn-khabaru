@@ -1596,11 +1596,14 @@ export default function AdminDashboard() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-white">{article.title}</h4>
                         <p className="mt-1 text-xs text-slate-400">{article.publishedAt}</p>
-                        {article.facebookPostId ? (
-                          <p className="mt-1 text-xs text-emerald-400">✓ Posted to Facebook</p>
-                        ) : (
-                          <p className="mt-1 text-xs text-slate-500">Not posted to Facebook</p>
-                        )}
+                        <div className="mt-1 flex items-center gap-3 text-xs">
+                          <span className="text-slate-400">👁️ {article.views || 0} views</span>
+                          {article.facebookPostId ? (
+                            <span className="text-emerald-400">✓ Posted to Facebook</span>
+                          ) : (
+                            <span className="text-slate-500">Not posted to Facebook</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
