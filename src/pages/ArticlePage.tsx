@@ -400,6 +400,14 @@ export default function ArticlePage() {
             <div className="rounded-2xl overflow-hidden bg-slate-100 shadow-soft">
               <img src={article.image} alt={article.title} className="h-[360px] w-full object-cover" />
             </div>
+            {article.video && (
+              <div className="rounded-2xl overflow-hidden bg-slate-900 shadow-soft">
+                <video controls className="w-full" poster={article.image}>
+                  <source src={article.video} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
             <div className="space-y-2 text-slate-700">
               <span className="inline-flex rounded-full bg-sky-600/95 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-white">{article.category}</span>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">

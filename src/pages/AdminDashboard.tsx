@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { categories } from '../data/mockData';
 import { postToFacebook, deleteFromFacebook, getFacebookPageInsights } from '../utils/facebook';
-import { uploadImage } from '../utils/cloudinary';
+import { uploadImage, uploadVideo, uploadToGitHub } from '../utils/cloudinary';
 
 type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners' | 'imageGenerator' | 'notifications';
 
@@ -282,6 +282,10 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState(categories[0].id);
   const [author, setAuthor] = useState('');
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUploadOption, setVideoUploadOption] = useState<'cloudinary' | 'github'>('cloudinary');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [readingTime, setReadingTime] = useState(language === 'en' ? '5 min' : '5މިނިޓް');
   const [body, setBody] = useState('');
   const [bodyEn, setBodyEn] = useState('');
@@ -298,6 +302,10 @@ export default function AdminDashboard() {
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [editAuthor, setEditAuthor] = useState('');
+  const [editVideoUrl, setEditVideoUrl] = useState('');
+  const [editVideoFile, setEditVideoFile] = useState<File | null>(null);
+  const [editVideoUploadOption, setEditVideoUploadOption] = useState<'cloudinary' | 'github'>('cloudinary');
+  const [uploadingEditVideo, setUploadingEditVideo] = useState(false);
   const [editBody, setEditBody] = useState('');
   const [editBodyEn, setEditBodyEn] = useState('');
   const [editReadingTime, setEditReadingTime] = useState('5މިނިޓް');
@@ -928,6 +936,25 @@ export default function AdminDashboard() {
         setUploadingArticle(false);
       }
       
+      // Upload video if file is selected
+      let finalVideoUrl = videoUrl;
+      if (videoFile) {
+        setUploadingVideo(true);
+        try {
+          if (videoUploadOption === 'cloudinary') {
+            finalVideoUrl = await uploadVideo(videoFile, 'videos');
+          } else {
+            finalVideoUrl = await uploadToGitHub(videoFile, videoFile.name);
+          }
+        } catch (uploadError) {
+          setMessage(t.newsError + ': Failed to upload video');
+          setSubmitting(false);
+          setUploadingVideo(false);
+          return;
+        }
+        setUploadingVideo(false);
+      }
+      
       // Generate numeric ID starting from 1000
       const articlesSnapshot = await getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(1)));
       let nextId = 1000;
@@ -949,6 +976,7 @@ export default function AdminDashboard() {
         excerptEn: excerpt,
         category,
         image: finalImageUrl,
+        video: finalVideoUrl,
         publishedAt: new Date().toLocaleDateString('dv'),
         author: author || 'Admin',
         views: 0,
@@ -977,6 +1005,8 @@ export default function AdminDashboard() {
       setAuthor('');
       setImageUrl('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
       setArticleFile(null);
+      setVideoUrl('');
+      setVideoFile(null);
       setBody('');
       setBodyEn('');
       setTrending(false);
@@ -1071,6 +1101,7 @@ export default function AdminDashboard() {
     setEditImageUrl(article.image || '');
     setEditCategory(article.category || '');
     setEditAuthor(article.author || '');
+    setEditVideoUrl(article.video || '');
     setEditBody(Array.isArray(article.body) ? article.body.join(' ') : (article.body || ''));
     setEditBodyEn(Array.isArray(article.bodyEn) ? article.bodyEn.join(' ') : (article.bodyEn || ''));
     setEditReadingTime(article.readingTime || '5މިނިޓް');
@@ -1097,12 +1128,31 @@ export default function AdminDashboard() {
         setUploadingEditArticle(false);
       }
       
+      // Upload video if file is selected
+      let finalVideoUrl = editVideoUrl;
+      if (editVideoFile) {
+        setUploadingEditVideo(true);
+        try {
+          if (editVideoUploadOption === 'cloudinary') {
+            finalVideoUrl = await uploadVideo(editVideoFile, 'videos');
+          } else {
+            finalVideoUrl = await uploadToGitHub(editVideoFile, editVideoFile.name);
+          }
+        } catch (uploadError) {
+          setMessage(t.newsUpdateError + ': Failed to upload video');
+          setUploadingEditVideo(false);
+          return;
+        }
+        setUploadingEditVideo(false);
+      }
+      
       await updateDoc(doc(db, 'articles', editingArticle.id), {
         title: editTitleDv || editTitle,
         titleEn: editTitle,
         excerpt: editExcerptDv || editExcerpt,
         excerptEn: editExcerpt,
         image: finalImageUrl,
+        video: finalVideoUrl,
         category: editCategory,
         author: editAuthor || 'Admin',
         body: editBody,
@@ -1432,6 +1482,36 @@ export default function AdminDashboard() {
                     onChange={(e) => setArticleFile(e.target.files?.[0] || null)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                   />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ URL (Video URL)</label>
+                <input
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  placeholder="https://example.com/video.mp4"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ އަޕްލޯޑް (Upload Video)</label>
+                <div className="mt-2 space-y-2">
+                  <select
+                    value={videoUploadOption}
+                    onChange={(e) => setVideoUploadOption(e.target.value as 'cloudinary' | 'github')}
+                    className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  >
+                    <option value="cloudinary">Cloudinary (100GB Free)</option>
+                    <option value="github">GitHub (Save Storage)</option>
+                  </select>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    disabled={uploadingVideo}
+                  />
+                  {uploadingVideo && <p className="text-xs text-slate-400">Uploading video...</p>}
                 </div>
               </div>
               <div>
@@ -1793,6 +1873,36 @@ export default function AdminDashboard() {
                     onChange={(e) => setEditArticleFile(e.target.files?.[0] || null)}
                     className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ URL (Video URL)</label>
+                  <input
+                    value={editVideoUrl}
+                    onChange={(e) => setEditVideoUrl(e.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    placeholder="https://example.com/video.mp4"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ އަޕްލޯޑް (Upload Video)</label>
+                  <div className="mt-2 space-y-2">
+                    <select
+                      value={editVideoUploadOption}
+                      onChange={(e) => setEditVideoUploadOption(e.target.value as 'cloudinary' | 'github')}
+                      className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    >
+                      <option value="cloudinary">Cloudinary (100GB Free)</option>
+                      <option value="github">GitHub (Save Storage)</option>
+                    </select>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => setEditVideoFile(e.target.files?.[0] || null)}
+                      className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      disabled={uploadingEditVideo}
+                    />
+                    {uploadingEditVideo && <p className="text-xs text-slate-400">Uploading video...</p>}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
