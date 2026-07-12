@@ -130,15 +130,25 @@ Browse news by category:
 
 ### Admin Dashboard Overview
 
-The dashboard has three main sections:
+The dashboard has four main sections:
 
 #### 1. **Article Management**
 Create, edit, and manage articles
 
-#### 2. **Analytics**
+#### 2. **Image Generator**
+Create custom images with advanced controls:
+- **Multi-line text** - Add up to 2 independent text lines
+- **Logo positioning** - 9-position grid (top-left, top-center, top-right, middle-left, center, middle-right, bottom-left, bottom-center, bottom-right)
+- **Logo opacity** - Adjust transparency from 0% to 100%
+- **Text positioning** - Independent positioning for each text line (9 positions each)
+- **Real-time preview** - See changes instantly as you type/adjust
+- **Font controls** - Size, color, and style options
+- **Banner color** - Customize text background color
+
+#### 3. **Analytics**
 View page statistics and engagement
 
-#### 3. **Settings**
+#### 4. **Settings**
 Manage categories and system settings
 
 ---
@@ -291,6 +301,60 @@ Or see [FACEBOOK_TOKEN_SETUP.md](FACEBOOK_TOKEN_SETUP.md)
 
 ---
 
+## 🎨 Using the Image Generator
+
+The Image Generator allows you to create custom images with text overlays and logos.
+
+### Accessing the Image Generator
+
+1. Go to Admin Dashboard
+2. Navigate to the **Image Generator** section
+3. Upload a base image to start
+
+### Creating Custom Images
+
+#### Step 1: Upload Base Image
+- Click "Upload Image" button
+- Select an image from your computer
+- Image appears in the preview area
+
+#### Step 2: Add Text
+- **First text line**: Enter your main text in the first input field
+- **Second text line**: Enter additional text in the second input field (optional)
+- Both lines can be positioned independently
+
+#### Step 3: Adjust Logo
+- **Logo position**: Choose from 9 positions:
+  - Top row: Left, Center, Right
+  - Middle row: Left, Center, Right
+  - Bottom row: Left, Center, Right
+- **Logo opacity**: Use slider to adjust transparency (0-100%)
+- Logo uses `/logo.png` file (same as PWA icons)
+
+#### Step 4: Position Text
+- **First text position**: Choose position for main text (9 options)
+- **Second text position**: Choose position for second text (9 options)
+- Each text line has independent positioning
+
+#### Step 5: Customize Appearance
+- **Font size**: Adjust text size with slider (20-100px)
+- **Font color**: Choose text color with color picker
+- **Font style**: Select Normal, Bold, Italic, or Bold Italic
+- **Banner color**: Choose background color for text
+
+#### Step 6: Download
+- Preview updates in real-time as you make changes
+- Click "Download" to save the generated image
+- Image saves as PNG format
+
+### Tips
+- Use contrasting colors for text and banner for better readability
+- Lower logo opacity (50-70%) works well for subtle branding
+- Position text away from logo to avoid overlap
+- Test different font sizes to find optimal readability
+
+---
+
 ## 🔧 Troubleshooting
 
 ### App won't load
@@ -428,6 +492,6 @@ A: The PWA works like a native app on iOS. No need for separate app store instal
 
 ## 📝 Version
 
-This manual is for **Hawainn Khabaru v2.1.0** (July 2026)
+This manual is for **Hawainn Khabaru v2.2.0** (July 2026)
 
-Last updated: July 7, 2026
+Last updated: July 12, 2026

@@ -17,6 +17,12 @@ A production-ready news portal with full Dhivehi RTL support, PWA capabilities, 
 ### Admin Dashboard
 - ✍️ **Article management** - Create, edit, delete articles with rich editor
 - 📸 **Image uploads** - Cloudinary integration for fast image delivery
+- 🎨 **Advanced Image Generator** - Create custom images with:
+  - Multi-line text support (2 independent text lines)
+  - Logo positioning with 9-position grid (3x3 layout)
+  - Logo opacity control (0-100% transparency)
+  - Independent text positioning for each line
+  - Real-time preview updates
 - 📊 **Analytics** - Visitor tracking, page engagement, traffic insights
 - 🔐 **Access control** - Admin-only dashboard with email authentication
 - 📤 **Auto-posting to Facebook** - Articles automatically post to Facebook when published

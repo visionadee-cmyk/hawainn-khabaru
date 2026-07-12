@@ -2,6 +2,46 @@
 
 All notable changes to the Hawainn Khabaru news portal are documented in this file.
 
+## [2.2.0] - 2026-07-12 - Image Generator Enhancements & Bug Fixes
+
+### 🎨 New Features
+- **Enhanced Image Generator** in Admin Dashboard
+  - Multi-line text support (2 independent text lines)
+  - Logo positioning with 9-position grid (3x3 layout)
+  - Logo opacity control (0-100% transparency slider)
+  - Independent text positioning for each line (9 positions each)
+  - Real-time preview updates as you type/adjust
+  - Logo source changed to `/logo.png` (consistent with PWA icons)
+
+### 🐛 Bug Fixes
+- **Fixed React rendering error** - "Objects are not valid as a React child"
+  - Firebase Timestamp objects no longer rendered directly in JSX
+  - All timestamps now properly formatted via `getRelativeTime()` function
+  - Fixed in ArticlePage.tsx related articles section
+- **Fixed timestamp display** for newly posted articles
+  - Articles now show correct relative times (e.g., "minutes ago" instead of "23 hours ago")
+  - Firebase `createdAt` field properly mapped to `publishedAt`
+  - Updated across Home.tsx, Categories.tsx, ArticlePage.tsx, Videos.tsx
+- **Fixed TypeScript error** - Changed `HTMLFontFace` to `FontFace` type
+  - Corrected type annotation for Dhivehi font loading
+  - Build now passes TypeScript checks
+
+### 📝 Updated Files
+- `src/pages/AdminDashboard.tsx` - Image generator enhancements
+- `src/pages/ArticlePage.tsx` - React error fix + timestamp handling
+- `src/pages/Home.tsx` - Timestamp mapping fix
+- `src/pages/Categories.tsx` - Timestamp handling update
+- `src/pages/Videos.tsx` - Firestore query fix (removed orderBy to avoid index error)
+- `src/components/ArticleCard.tsx` - Timestamp formatting update
+- `src/pages/Notifications.tsx` - Timestamp calculation fix
+
+### 🚀 Deployment
+- ✅ All changes pushed to GitHub
+- ✅ Vercel auto-deployed successfully
+- ✅ Build passing without TypeScript errors
+
+---
+
 ## [2.1.0] - 2026-07-07 - Serverless Backend Migration
 
 ### 🚀 Major Changes
