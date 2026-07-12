@@ -404,7 +404,7 @@ export default function ArticlePage() {
               <span className="inline-flex rounded-full bg-sky-600/95 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-white">{article.category}</span>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                 <span>{getRelativeTime(article.publishedAt)}</span>
-                <span>{article.author}</span>
+                <span>ލިޔުއްވީ: {article.author || 'Admin'}</span>
                 <span>{article.readingTime}</span>
               </div>
               <h1 className="mt-4 mb-6 text-2xl font-bold leading-[2.5] text-white lg:text-slate-900 sm:text-3xl">{article.title}</h1>
