@@ -280,6 +280,7 @@ export default function AdminDashboard() {
   const [excerpt, setExcerpt] = useState('');
   const [excerptDv, setExcerptDv] = useState('');
   const [category, setCategory] = useState(categories[0].id);
+  const [author, setAuthor] = useState('');
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
   const [readingTime, setReadingTime] = useState(language === 'en' ? '5 min' : '5މިނިޓް');
   const [body, setBody] = useState('');
@@ -296,11 +297,15 @@ export default function AdminDashboard() {
   const [editExcerptDv, setEditExcerptDv] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editCategory, setEditCategory] = useState('');
+  const [editAuthor, setEditAuthor] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editBodyEn, setEditBodyEn] = useState('');
   const [editReadingTime, setEditReadingTime] = useState('5މިނިޓް');
   const [editTrending, setEditTrending] = useState(false);
   const [editBreaking, setEditBreaking] = useState(false);
+  
+  // Authors list for dropdown
+  const [authors, setAuthors] = useState<string[]>([]);
   
   // Image Generator state
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -711,6 +716,10 @@ export default function AdminDashboard() {
       setArticles(articlesData);
       setArticlesCount(articleSnapshot.size);
       
+      // Extract unique authors from articles
+      const uniqueAuthors = Array.from(new Set(articlesData.map((a: any) => a.author).filter(Boolean)));
+      setAuthors(uniqueAuthors);
+      
       // Load banners
       const bannerSnapshot = await getDocs(query(collection(db, 'banners'), orderBy('createdAt', 'desc')));
       const bannersData = bannerSnapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as any) }));
@@ -941,7 +950,7 @@ export default function AdminDashboard() {
         category,
         image: finalImageUrl,
         publishedAt: new Date().toLocaleDateString('dv'),
-        author: user.email || 'admin',
+        author: author || 'Admin',
         views: 0,
         readingTime,
         body,
@@ -953,6 +962,11 @@ export default function AdminDashboard() {
 
       setMessage(t.newsCreated);
 
+      // Add author to authors list if new
+      if (author && !authors.includes(author)) {
+        setAuthors([...authors, author]);
+      }
+
       // Don't reload dashboard to allow viewing console logs
       // loadDashboard();
 
@@ -960,6 +974,7 @@ export default function AdminDashboard() {
       setTitleDv('');
       setExcerpt('');
       setExcerptDv('');
+      setAuthor('');
       setImageUrl('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80');
       setArticleFile(null);
       setBody('');
@@ -1055,6 +1070,7 @@ export default function AdminDashboard() {
     setEditExcerptDv(article.excerpt || '');
     setEditImageUrl(article.image || '');
     setEditCategory(article.category || '');
+    setEditAuthor(article.author || '');
     setEditBody(Array.isArray(article.body) ? article.body.join(' ') : (article.body || ''));
     setEditBodyEn(Array.isArray(article.bodyEn) ? article.bodyEn.join(' ') : (article.bodyEn || ''));
     setEditReadingTime(article.readingTime || '5މިނިޓް');
@@ -1088,6 +1104,7 @@ export default function AdminDashboard() {
         excerptEn: editExcerpt,
         image: finalImageUrl,
         category: editCategory,
+        author: editAuthor || 'Admin',
         body: editBody,
         bodyEn: editBodyEn,
         readingTime: editReadingTime,
@@ -1362,6 +1379,21 @@ export default function AdminDashboard() {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-300">ލިޔެފައިވާ ފަރާތް (Author)</label>
+                <input
+                  list="authors-list"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  placeholder="ލިޔެފައިވާ ފަރާތުގެ ނަން..."
+                />
+                <datalist id="authors-list">
+                  {authors.map((a) => (
+                    <option key={a} value={a} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-300">{t.excerptDv}</label>
@@ -1709,6 +1741,21 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300">ލިޔެފައިވާ ފަރާތް (Author)</label>
+                  <input
+                    list="edit-authors-list"
+                    value={editAuthor}
+                    onChange={(e) => setEditAuthor(e.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    placeholder="ލިޔެފައިވާ ފަރާތުގެ ނަން..."
+                  />
+                  <datalist id="edit-authors-list">
+                    {authors.map((a) => (
+                      <option key={a} value={a} />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-300">{t.excerptDv}</label>
