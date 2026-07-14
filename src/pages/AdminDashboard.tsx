@@ -1504,6 +1504,21 @@ export default function AdminDashboard() {
               <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
                 <h4 className="font-semibold text-gray-900 mb-3">އިމޭޖް ޖެނެރޭޓަރ (Image Generator)</h4>
                 
+                {/* Sample Image Option */}
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadedImage('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800');
+                      setGeneratedImage(null);
+                      setMessage('Sample image loaded');
+                    }}
+                    className="w-full rounded-2xl border border-purple-500 bg-purple-500/20 px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-500/30"
+                  >
+                    ސެމްޕަލް އިމޭޖް ލޯޑް ކުރުން (Load Sample Image)
+                  </button>
+                </div>
+                
                 {/* Upload Section */}
                 <div className="mb-4">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">އިމޭޖް އަޕްލޯޑް ކުރުން</label>
@@ -1690,7 +1705,24 @@ export default function AdminDashboard() {
                     <h5 className="font-semibold text-gray-900 mb-3">ޕްރިވިއު</h5>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <h6 className="mb-2 text-xs font-medium text-gray-600">އޮރިޖިނަލް އިމޭޖް</h6>
+                        <div className="flex items-center justify-between mb-2">
+                          <h6 className="text-xs font-medium text-gray-600">އޮރިޖިނަލް އިމޭޖް</h6>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!uploadedImage) return;
+                              const link = document.createElement('a');
+                              link.href = uploadedImage;
+                              link.download = `original-image-${Date.now()}.png`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                          >
+                            ޑައުންލޯޑް
+                          </button>
+                        </div>
                         <img
                           src={uploadedImage}
                           alt="Uploaded"
@@ -1699,7 +1731,24 @@ export default function AdminDashboard() {
                       </div>
                       {generatedImage && (
                         <div>
-                          <h6 className="mb-2 text-xs font-medium text-gray-600">ޖެނެރޭޓް ކުރެވުނު އިމޭޖް</h6>
+                          <div className="flex items-center justify-between mb-2">
+                            <h6 className="text-xs font-medium text-gray-600">ޖެނެރޭޓް ކުރެވުނު އިމޭޖް</h6>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!generatedImage) return;
+                                const link = document.createElement('a');
+                                link.href = generatedImage;
+                                link.download = `generated-image-${Date.now()}.png`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                              className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                            >
+                              ޑައުންލޯޑް
+                            </button>
+                          </div>
                           <img
                             src={generatedImage}
                             alt="Generated"
