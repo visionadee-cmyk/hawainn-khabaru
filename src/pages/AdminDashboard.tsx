@@ -1298,30 +1298,6 @@ export default function AdminDashboard() {
   const topVisitors = Array.isArray(visitorDetails) ? visitorDetails.slice(0, 8) : [];
 
   // PWA Install Handler
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      console.log('beforeinstallprompt event fired');
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('App is already installed');
-      setShowInstallButton(false);
-    } else {
-      // Show install button even if beforeinstallprompt hasn't fired yet
-      // The button will handle the case where prompt is not available
-      setShowInstallButton(true);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
   const handleInstallClick = async () => {
     console.log('Install button clicked, deferredPrompt:', deferredPrompt);
     if (!deferredPrompt) {
@@ -1345,6 +1321,30 @@ export default function AdminDashboard() {
       alert('Installation failed. Please try adding to home screen manually from browser menu.');
     }
   };
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      console.log('beforeinstallprompt event fired');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('App is already installed');
+      setShowInstallButton(false);
+    } else {
+      // Show install button even if beforeinstallprompt hasn't fired yet
+      // The button will handle the case where prompt is not available
+      setShowInstallButton(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   // Auto-fill Image Generator text with Dhivehi title
   useEffect(() => {
