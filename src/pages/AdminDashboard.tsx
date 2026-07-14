@@ -1302,10 +1302,20 @@ export default function AdminDashboard() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowInstallButton(true);
+      console.log('beforeinstallprompt event fired');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('App is already installed');
+      setShowInstallButton(false);
+    } else {
+      // Show install button even if beforeinstallprompt hasn't fired yet
+      // The button will handle the case where prompt is not available
+      setShowInstallButton(true);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -1313,25 +1323,28 @@ export default function AdminDashboard() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setShowInstallButton(false);
+    console.log('Install button clicked, deferredPrompt:', deferredPrompt);
+    if (!deferredPrompt) {
+      console.log('No deferred prompt available - showing manual instructions');
+      alert('To install the admin panel:\n\n1. Open this page in Chrome/Edge on your mobile device\n2. Tap the menu (three dots)\n3. Select "Add to Home Screen" or "Install App"\n\nOr use Chrome on desktop and click the install icon in the address bar.');
+      return;
     }
-    
-    setDeferredPrompt(null);
+
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('Install outcome:', outcome);
+      
+      if (outcome === 'accepted') {
+        setShowInstallButton(false);
+      }
+      
+      setDeferredPrompt(null);
+    } catch (error) {
+      console.error('Error during install prompt:', error);
+      alert('Installation failed. Please try adding to home screen manually from browser menu.');
+    }
   };
-
-  // Set admin manifest dynamically
-  useEffect(() => {
-    const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-    if (link) {
-      link.href = '/admin-manifest.json';
-    }
-  }, []);
 
   // Auto-fill Image Generator text with Dhivehi title
   useEffect(() => {

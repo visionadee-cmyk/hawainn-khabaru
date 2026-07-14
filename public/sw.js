@@ -2,6 +2,7 @@ const CACHE_NAME = 'ahdhamu-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
+  '/admin-manifest.json',
   '/favicon.svg',
   '/logo.png',
   '/fonts/Dhivehi.ttf',
