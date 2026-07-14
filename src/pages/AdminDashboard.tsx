@@ -23,6 +23,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>('articles');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [language, setLanguage] = useState<'en' | 'dv'>('dv');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   const translations = {
     en: {
@@ -1295,6 +1297,42 @@ export default function AdminDashboard() {
   const visitorCount = visitorDetails?.length ?? 0;
   const topVisitors = Array.isArray(visitorDetails) ? visitorDetails.slice(0, 8) : [];
 
+  // PWA Install Handler
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setShowInstallButton(false);
+    }
+    
+    setDeferredPrompt(null);
+  };
+
+  // Set admin manifest dynamically
+  useEffect(() => {
+    const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+    if (link) {
+      link.href = '/admin-manifest.json';
+    }
+  }, []);
+
   if (user === undefined) {
     return (
       <div className="rounded-[32px] border border-gray-200 bg-white p-8 shadow-soft text-right">
@@ -1322,6 +1360,17 @@ export default function AdminDashboard() {
             <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">{t.adminDashboard}</h2>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            {showInstallButton && (
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-purple-500 bg-purple-500/20 text-purple-700 transition hover:bg-purple-500/30"
+                aria-label="Install app"
+                title="Install Admin Panel App"
+              >
+                📲
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
