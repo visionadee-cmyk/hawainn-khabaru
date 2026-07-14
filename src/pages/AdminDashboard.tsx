@@ -1333,6 +1333,13 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  // Auto-fill Image Generator text with Dhivehi title
+  useEffect(() => {
+    if (titleDv && !overlayText) {
+      setOverlayText(titleDv);
+    }
+  }, [titleDv]);
+
   if (user === undefined) {
     return (
       <div className="rounded-[32px] border border-gray-200 bg-white p-8 shadow-soft text-right">
@@ -2566,12 +2573,121 @@ export default function AdminDashboard() {
                   // Parse the pasted content to extract title, excerpt, and body
                   const lines = fetchedContent.split('\n').filter(line => line.trim());
                   
-                  // First line is the title
-                  const title = lines[0] || '';
+                  // Helper function to clean markdown formatting
+                  const cleanMarkdown = (text: string) => {
+                    return text
+                      .replace(/#{1,6}\s*/g, '')      // Remove heading markers (#, ##, etc.)
+                      .replace(/\*\*(.+?)\*\*/g, '$1') // Remove **bold** but keep content
+                      .replace(/\*(.+?)\*/g, '$1')     // Remove *italic* but keep content
+                      .replace(/`(.+?)`/g, '$1')       // Remove `code` but keep content
+                      .replace(/~~(.+?)~~/g, '$1')     // Remove ~~strikethrough~~ but keep content
+                      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Remove [link](url) but keep text
+                      .replace(/!\[.+?\]\(.+?\)/g, '')  // Remove images
+                      .replace(/^>\s*/gm, '')          // Remove blockquotes
+                      .replace(/\n{3,}/g, '\n\n')      // Reduce multiple newlines
+                      .trim();
+                  };
                   
-                  // Find the "އެކްސާޕްޓް" (Excerpt) section
-                  const excerptIndex = lines.findIndex(line => line.trim() === 'އެކްސާޕްޓް');
-                  const bodyIndex = lines.findIndex(line => line.trim() === 'ބޮޑީ');
+                  // Find title - look for markdown heading or first non-empty line
+                  let title = '';
+                  let startIndex = 0;
+                  
+                  // Look for markdown heading (### **Heading**) or just **Title** or plain text
+                  const headingMatch = lines[0]?.match(/^#{1,6}\s*\*\*(.+?)\*\*$/);
+                  if (headingMatch) {
+                    // First line is a heading like ### **ހެޑިންގ**
+                    // This is just a section marker, skip it and look for the actual title
+                    startIndex = 1;
+                    // Skip empty lines after heading
+                    while (startIndex < lines.length && !lines[startIndex]?.trim()) {
+                      startIndex++;
+                    }
+                    // Check if next non-empty line is bold text (the actual title)
+                    const boldMatch = lines[startIndex]?.match(/^\*\*(.+?)\*\*$/);
+                    if (boldMatch) {
+                      title = boldMatch[1].trim();
+                      startIndex++;
+                    } else if (lines[startIndex]) {
+                      // Use the next line as title and clean any markdown
+                      const nextLineClean = cleanMarkdown(lines[startIndex]);
+                      title = nextLineClean;
+                      startIndex++;
+                    }
+                  } else if (lines[0]?.match(/^#{1,6}\s*(.+)$/)) {
+                    // First line is a plain heading like ### Heading
+                    // This is just a section marker, skip it
+                    startIndex = 1;
+                    // Skip empty lines after heading
+                    while (startIndex < lines.length && !lines[startIndex]?.trim()) {
+                      startIndex++;
+                    }
+                    // Check if next non-empty line is bold text (the actual title)
+                    const boldMatch = lines[startIndex]?.match(/^\*\*(.+?)\*\*$/);
+                    if (boldMatch) {
+                      title = boldMatch[1].trim();
+                      startIndex++;
+                    } else if (lines[startIndex]) {
+                      // Use the next line as title and clean any markdown
+                      const nextLineClean = cleanMarkdown(lines[startIndex]);
+                      title = nextLineClean;
+                      startIndex++;
+                    }
+                  } else {
+                    // Check if first line is just bold (**Title**)
+                    const boldMatch = lines[0]?.match(/^\*\*(.+?)\*\*$/);
+                    if (boldMatch) {
+                      title = boldMatch[1].trim();
+                      startIndex = 1;
+                    } else if (lines[0]) {
+                      // Use first line as title and clean any markdown
+                      const firstLineClean = cleanMarkdown(lines[0]);
+                      title = firstLineClean;
+                      startIndex = 1;
+                    }
+                  }
+                  
+                  // If title is still empty after parsing, try to get it from the first non-heading line
+                  if (!title && lines.length > 0) {
+                    // Skip any heading lines and get the first actual content
+                    let contentIndex = 0;
+                    while (contentIndex < lines.length && lines[contentIndex]?.match(/^#{1,6}\s*/)) {
+                      contentIndex++;
+                    }
+                    // Skip empty lines
+                    while (contentIndex < lines.length && !lines[contentIndex]?.trim()) {
+                      contentIndex++;
+                    }
+                    if (contentIndex < lines.length) {
+                      title = cleanMarkdown(lines[contentIndex]);
+                      startIndex = contentIndex + 1;
+                    }
+                  }
+                  
+                  console.log('Parsing result:', { title, startIndex, lines: lines.slice(0, 5) });
+                  
+                  // Find the "އެކްސާޕްޓް" (Excerpt) section - handle markdown format
+                  const excerptIndex = lines.findIndex((line, index) => 
+                    index >= startIndex && (
+                      line.trim() === 'އެކްސާޕްޓް' || 
+                      line.trim() === '### **އެކްސާޕްޓް**' || 
+                      line.trim() === '**އެކްސާޕްޓް**' || 
+                      line.trim() === '### އެކްސާޕްޓް' ||
+                      line.trim() === '## **އެކްސާޕްޓް**' ||
+                      line.trim() === '# **އެކްސާޕްޓް**'
+                    )
+                  );
+                  
+                  // Find the "ބޮޑީ" (Body) section - handle markdown format
+                  const bodyIndex = lines.findIndex((line, index) => 
+                    index >= startIndex && (
+                      line.trim() === 'ބޮޑީ' || 
+                      line.trim() === '### **ބޮޑީ**' || 
+                      line.trim() === '**ބޮޑީ**' || 
+                      line.trim() === '### ބޮޑީ' ||
+                      line.trim() === '## **ބޮޑީ**' ||
+                      line.trim() === '# **ބޮޑީ**'
+                    )
+                  );
                   
                   let excerpt = '';
                   let body = '';
@@ -2585,11 +2701,22 @@ export default function AdminDashboard() {
                     // Only excerpt found, rest is body
                     excerpt = lines.slice(excerptIndex + 1).join('\n').trim();
                     body = excerpt;
+                  } else if (bodyIndex !== -1) {
+                    // Only body found, everything before it is excerpt
+                    excerpt = lines.slice(startIndex, bodyIndex).join('\n').trim();
+                    body = lines.slice(bodyIndex + 1).join('\n').trim();
                   } else {
                     // No sections found, use everything after title as body
-                    body = lines.slice(1).join('\n').trim();
+                    body = lines.slice(startIndex).join('\n').trim();
                     excerpt = body.split('\n')[0]?.substring(0, 300) || '';
                   }
+                  
+                  // Clean markdown formatting from all fields
+                  title = cleanMarkdown(title);
+                  excerpt = cleanMarkdown(excerpt);
+                  body = cleanMarkdown(body);
+                  
+                  console.log('Parsed:', { title, excerpt, body }); // Debug log
                   
                   // Auto-fill the create article form
                   setTitle(title);
