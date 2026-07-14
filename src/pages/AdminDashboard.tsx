@@ -8,7 +8,7 @@ import { categories } from '../data/mockData';
 import { postToFacebook, deleteFromFacebook, getFacebookPageInsights } from '../utils/facebook';
 import { uploadImage, uploadVideo, uploadToGitHub } from '../utils/cloudinary';
 
-type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners' | 'imageGenerator' | 'notifications';
+type AdminTab = 'articles' | 'manage' | 'analytics' | 'settings' | 'banners' | 'notifications' | 'rephrase';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -311,6 +311,21 @@ export default function AdminDashboard() {
   const [editReadingTime, setEditReadingTime] = useState('5މިނިޓް');
   const [editTrending, setEditTrending] = useState(false);
   const [editBreaking, setEditBreaking] = useState(false);
+  
+  // News Rephrase state
+  const [rephraseUrl, setRephraseUrl] = useState('');
+  const [fetchedContent, setFetchedContent] = useState('');
+  const [fetchedTitle, setFetchedTitle] = useState('');
+  const [fetchedExcerpt, setFetchedExcerpt] = useState('');
+  const [fetchedBody, setFetchedBody] = useState('');
+  const [rephrasedTitle, setRephrasedTitle] = useState('');
+  const [rephrasedExcerpt, setRephrasedExcerpt] = useState('');
+  const [rephrasedBody, setRephrasedBody] = useState('');
+  const [rephrasedTitleDv, setRephrasedTitleDv] = useState('');
+  const [rephrasedExcerptDv, setRephrasedExcerptDv] = useState('');
+  const [rephrasedBodyDv, setRephrasedBodyDv] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const [isRephrasing, setIsRephrasing] = useState(false);
   
   // Authors list for dropdown
   const [authors, setAuthors] = useState<string[]>([]);
@@ -1282,17 +1297,17 @@ export default function AdminDashboard() {
 
   if (user === undefined) {
     return (
-      <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-8 shadow-soft text-right">
-        <h2 className="text-2xl font-semibold text-white">{t.loading}</h2>
+      <div className="rounded-[32px] border border-gray-200 bg-white p-8 shadow-soft text-right">
+        <h2 className="text-2xl font-semibold text-gray-900">{t.loading}</h2>
       </div>
     );
   }
 
   if (user === null) {
     return (
-      <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-8 shadow-soft text-right">
-        <h2 className="text-2xl font-semibold text-white">{t.notLoggedIn}</h2>
-        <p className="mt-4 text-slate-400">{t.pleaseLogin}</p>
+      <div className="rounded-[32px] border border-gray-200 bg-white p-8 shadow-soft text-right">
+        <h2 className="text-2xl font-semibold text-gray-900">{t.notLoggedIn}</h2>
+        <p className="mt-4 text-gray-600">{t.pleaseLogin}</p>
       </div>
     );
   }
@@ -1300,17 +1315,17 @@ export default function AdminDashboard() {
   return (
     <motion.div className="space-y-8 text-right" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       {/* Header */}
-      <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
+      <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">{t.adminPanel}</p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">{t.adminDashboard}</h2>
+            <p className="text-xs uppercase tracking-[0.24em] text-emerald-600">{t.adminPanel}</p>
+            <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">{t.adminDashboard}</h2>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
-              className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
+              className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-gray-700 transition hover:border-gray-400 hover:text-gray-900"
               aria-label="Toggle language"
               title="Toggle language"
             >
@@ -1319,19 +1334,19 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 text-slate-300 transition hover:border-slate-500 hover:text-white"
+              className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-gray-700 transition hover:border-gray-400 hover:text-gray-900"
               aria-label="Toggle theme"
               title="Toggle theme"
             >
               {theme === 'dark' ? '🌙' : '☀️'}
             </button>
             {user && (
-            <div className="rounded-3xl bg-slate-950/90 p-3 sm:p-4 text-xs sm:text-sm text-slate-300 shadow-soft">
+            <div className="rounded-3xl bg-gray-100 p-3 sm:p-4 text-xs sm:text-sm text-gray-700 shadow-soft">
               <p>{t.news}: {articlesCount}</p>
               <p>{t.visits}: {visitorCount}</p>
               <button
                 onClick={handleLogout}
-                className="mt-2 sm:mt-3 w-full rounded-2xl border border-rose-600 px-2 sm:px-3 py-2 text-rose-400 transition hover:bg-rose-600/20"
+                className="mt-2 sm:mt-3 w-full rounded-2xl border border-rose-600 px-2 sm:px-3 py-2 text-rose-600 transition hover:bg-rose-600/20"
               >
                 {t.logout}
               </button>
@@ -1340,7 +1355,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         {message && (
-          <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-600 animate-in fade-in slide-in-from-top-2 duration-300">
             {message}
           </div>
         )}
@@ -1349,15 +1364,15 @@ export default function AdminDashboard() {
       {/* Admin Content */}
       <>
         {/* Tabs */}
-        <div className="flex gap-1 sm:gap-2 border-b border-slate-800 pb-3 sm:pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
-          {(['articles', 'manage', 'banners', 'analytics', 'settings', 'imageGenerator', 'notifications'] as const).map((tab) => (
+        <div className="flex gap-1 sm:gap-2 border-b border-gray-300 pb-3 sm:pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+          {(['articles', 'manage', 'banners', 'analytics', 'settings', 'notifications', 'rephrase'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`rounded-full px-1.5 sm:px-3 py-1 sm:py-2 text-[10px] sm:text-sm font-semibold transition whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab
-                  ? 'bg-brand-500 text-slate-950'
-                  : 'border border-slate-700 text-slate-300 hover:border-slate-500'
+                  ? 'bg-brand-500 text-white'
+                  : 'border border-gray-300 text-gray-700 hover:border-gray-400'
               }`}
             >
               {tab === 'articles' && t.createNews}
@@ -1365,46 +1380,46 @@ export default function AdminDashboard() {
               {tab === 'banners' && t.manageBanners}
               {tab === 'analytics' && t.analytics}
               {tab === 'settings' && t.settings}
-              {tab === 'imageGenerator' && t.imageGenerator}
               {tab === 'notifications' && 'ނޮޓިފިކޭޝަންތައް'}
+              {tab === 'rephrase' && 'ޚަބަރު ރީފްރޭޒް (Rephrase)'}
             </button>
           ))}
         </div>
 
         {/* Articles Tab */}
         {activeTab === 'articles' && (
-          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-            <h3 className="text-2xl font-bold text-white">{t.createNews}</h3>
-            <p className="mt-2 text-sm text-slate-400">{t.newsDescription}</p>
+          <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900">{t.createNews}</h3>
+            <p className="mt-2 text-sm text-gray-600">{t.newsDescription}</p>
             <form onSubmit={handleCreateArticle} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.titleDv}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.titleDv}</label>
                   <input
                     value={titleDv}
                     onChange={(e) => setTitleDv(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="ޚަބަރުގެ ހެޑްލައިން ލިޔުން..."
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.title}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.title}</label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="Type headline in English..."
                   />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.category}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.category}</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     required
                   >
                     {categories.map((cat) => (
@@ -1419,7 +1434,7 @@ export default function AdminDashboard() {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     required
                   >
                     {categories.map((cat) => (
@@ -1431,12 +1446,12 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">ލިޔެފައިވާ ފަރާތް (Author)</label>
+                <label className="block text-sm font-semibold text-gray-700">ލިޔެފައިވާ ފަރާތް (Author)</label>
                 <input
                   list="authors-list"
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   placeholder="ލިޔެފައިވާ ފަރާތުގެ ނަން..."
                 />
                 <datalist id="authors-list">
@@ -1446,60 +1461,313 @@ export default function AdminDashboard() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.excerptDv}</label>
+                <label className="block text-sm font-semibold text-gray-700">{t.excerptDv}</label>
                 <input
                   value={excerptDv}
                   onChange={(e) => setExcerptDv(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   placeholder="ޚަބަރުގެ ކުރުތަކެއް ލިޔުން..."
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.excerpt}</label>
+                <label className="block text-sm font-semibold text-gray-700">{t.excerpt}</label>
                 <input
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   placeholder="Type short description in English..."
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.photoUrl}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.photoUrl}</label>
                   <input
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">Upload Image</label>
+                  <label className="block text-sm font-semibold text-gray-700">Upload Image</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setArticleFile(e.target.files?.[0] || null)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   />
                 </div>
               </div>
+
+              {/* Image Generator Section */}
+              <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">އިމޭޖް ޖެނެރޭޓަރ (Image Generator)</h4>
+                
+                {/* Upload Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">އިމޭޖް އަޕްލޯޑް ކުރުން</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setUploadedImage(event.target?.result as string);
+                          setGeneratedImage(null);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                {/* Text Input Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ޓެކްސްޓް އިންޕުޓް</label>
+                  <input
+                    type="text"
+                    value={overlayText}
+                    onChange={(e) => setOverlayText(e.target.value)}
+                    placeholder="އެއްވެސް ޓެކްސްޓެއް ލިޔުން..."
+                    className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500 mb-2"
+                  />
+                  <input
+                    type="text"
+                    value={overlayText2}
+                    onChange={(e) => setOverlayText2(e.target.value)}
+                    placeholder="ދެވަނަ ރޯގަލް (އޮޕްޝަނަލް)"
+                    className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                {/* Logo Position Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ލޮގޯ ޕޮޒިޝަން</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'].map((pos) => (
+                      <button
+                        key={pos}
+                        onClick={() => setLogoPosition(pos as any)}
+                        className={`rounded-lg px-3 py-2 text-xs transition ${
+                          logoPosition === pos
+                            ? 'bg-brand-500 text-white'
+                            : 'border border-gray-300 text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        {pos.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Logo Opacity Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ލޮގޯ އޮޕެސިޓީ</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={logoOpacity}
+                      onChange={(e) => setLogoOpacity(Number(e.target.value))}
+                      className="flex-1 h-2 rounded-lg bg-gray-300 appearance-none cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600 w-16 text-right">{logoOpacity}%</span>
+                  </div>
+                </div>
+
+                {/* Text Position Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ޓެކްސްޓް ޕޮޒިޝަން (ފުރަތަމަ ރޯގަލް)</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'].map((pos) => (
+                      <button
+                        key={pos}
+                        onClick={() => setTextPosition(pos as any)}
+                        className={`rounded-lg px-3 py-2 text-xs transition ${
+                          textPosition === pos
+                            ? 'bg-brand-500 text-white'
+                            : 'border border-gray-300 text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        {pos.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text Position 2 Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ޓެކްސްޓް ޕޮޒިޝަން (ދެވަނަ ރޯގަލް)</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'].map((pos) => (
+                      <button
+                        key={pos}
+                        onClick={() => setTextPosition2(pos as any)}
+                        className={`rounded-lg px-3 py-2 text-xs transition ${
+                          textPosition2 === pos
+                            ? 'bg-brand-500 text-white'
+                            : 'border border-gray-300 text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        {pos.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Picker Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ބެނަރ ކަލަރ</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={bannerColor}
+                      onChange={(e) => setBannerColor(e.target.value)}
+                      className="h-10 w-16 rounded-lg border border-gray-300 bg-white cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600">{bannerColor}</span>
+                  </div>
+                </div>
+
+                {/* Font Size Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ފޮންޓް ސައިޒް</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="20"
+                      max="100"
+                      value={fontSize}
+                      onChange={(e) => setFontSize(Number(e.target.value))}
+                      className="flex-1 h-2 rounded-lg bg-gray-300 appearance-none cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600 w-16 text-right">{fontSize}px</span>
+                  </div>
+                </div>
+
+                {/* Font Color Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ފޮންޓް ކަލަރ</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={fontColor}
+                      onChange={(e) => setFontColor(e.target.value)}
+                      className="h-10 w-16 rounded-lg border border-gray-300 bg-white cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600">{fontColor}</span>
+                  </div>
+                </div>
+
+                {/* Font Style Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ފޮންޓް ސްޓައިލް</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['normal', 'bold', 'italic', 'bold italic'].map((style) => (
+                      <button
+                        key={style}
+                        onClick={() => setFontStyle(style as any)}
+                        className={`rounded-lg px-3 py-2 text-sm transition ${
+                          fontStyle === style
+                            ? 'bg-brand-500 text-white'
+                            : 'border border-gray-300 text-gray-700 hover:border-gray-400'
+                        }`}
+                      >
+                        {style.replace(/\b\w/g, l => l.toUpperCase())}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Real-time Preview Section */}
+                {uploadedImage && (
+                  <div className="mb-4 rounded-2xl border border-gray-300 bg-white p-4">
+                    <h5 className="font-semibold text-gray-900 mb-3">ޕްރިވިއު</h5>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <h6 className="mb-2 text-xs font-medium text-gray-600">އޮރިޖިނަލް އިމޭޖް</h6>
+                        <img
+                          src={uploadedImage}
+                          alt="Uploaded"
+                          className="h-auto w-full rounded-lg border border-gray-300"
+                        />
+                      </div>
+                      {generatedImage && (
+                        <div>
+                          <h6 className="mb-2 text-xs font-medium text-gray-600">ޖެނެރޭޓް ކުރެވުނު އިމޭޖް</h6>
+                          <img
+                            src={generatedImage}
+                            alt="Generated"
+                            className="h-auto w-full rounded-lg border border-gray-300"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Download Button */}
+                {generatedImage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!generatedImage) return;
+                      const link = document.createElement('a');
+                      link.href = generatedImage;
+                      link.download = `generated-image-${Date.now()}.png`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="mb-2 w-full rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                  >
+                    އިމޭޖް ޑައުންލޯޑް ކުރުން
+                  </button>
+                )}
+
+                {/* Use in Article Button */}
+                {generatedImage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetch(generatedImage)
+                        .then(res => res.blob())
+                        .then(blob => {
+                          const file = new File([blob], 'generated-image.png', { type: 'image/png' });
+                          setArticleFile(file);
+                          setMessage('Generated image added to article');
+                        });
+                    }}
+                    className="w-full rounded-2xl bg-brand-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-brand-400"
+                  >
+                    މި އިމޭޖް ބޭނުން ކުރާ (Use This Image)
+                  </button>
+                )}
+
+                {/* Hidden Canvas */}
+                <canvas ref={canvasRef} className="hidden" />
+              </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ URL (Video URL)</label>
+                <label className="block text-sm font-semibold text-gray-700">ވީޑިއޯ URL (Video URL)</label>
                 <input
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   placeholder="https://example.com/video.mp4"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ އަޕްލޯޑް (Upload Video)</label>
+                <label className="block text-sm font-semibold text-gray-700">ވީޑިއޯ އަޕްލޯޑް (Upload Video)</label>
                 <div className="mt-2 space-y-2">
                   <select
                     value={videoUploadOption}
                     onChange={(e) => setVideoUploadOption(e.target.value as 'cloudinary' | 'github')}
-                    className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   >
                     <option value="cloudinary">Cloudinary (100GB Free)</option>
                     <option value="github">GitHub (Save Storage)</option>
@@ -1508,18 +1776,18 @@ export default function AdminDashboard() {
                     type="file"
                     accept="video/*"
                     onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                    className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     disabled={uploadingVideo}
                   />
-                  {uploadingVideo && <p className="text-xs text-slate-400">Uploading video...</p>}
+                  {uploadingVideo && <p className="text-xs text-gray-600">Uploading video...</p>}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
+                <label className="block text-sm font-semibold text-gray-700">{t.readingTime}</label>
                 <select
                   value={readingTime}
                   onChange={(e) => setReadingTime(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   required
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((min) => (
@@ -1530,52 +1798,52 @@ export default function AdminDashboard() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">{t.newsContent}</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t.newsContent}</label>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{t.paragraphDv}</label>
                     <textarea
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
-                      className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                      className="min-h-[200px] w-full rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500"
                       placeholder="ޚަބަރުގެ މައްޗާ ލިޔުން..."
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{t.paragraphEn}</label>
                     <textarea
                       value={bodyEn}
                       onChange={(e) => setBodyEn(e.target.value)}
-                      className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                      className="min-h-[200px] w-full rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500"
                       placeholder="Type article content in English..."
                     />
                   </div>
                 </div>
               </div>
               <div className="flex gap-4">
-                <label className="inline-flex items-center gap-2 text-slate-300">
+                <label className="inline-flex items-center gap-2 text-gray-700">
                   <input
                     type="checkbox"
                     checked={trending}
                     onChange={(e) => setTrending(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-700 bg-slate-950"
+                    className="h-4 w-4 rounded border-gray-300 bg-white"
                   />
                   {t.trending}
                 </label>
-                <label className="inline-flex items-center gap-2 text-slate-300">
+                <label className="inline-flex items-center gap-2 text-gray-700">
                   <input
                     type="checkbox"
                     checked={breaking}
                     onChange={(e) => setBreaking(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-700 bg-slate-950"
+                    className="h-4 w-4 rounded border-gray-300 bg-white"
                   />
                   {t.breaking}
                 </label>
               </div>
               <button
                 disabled={submitting}
-                className="w-full rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? t.submitting : t.submit}
               </button>
@@ -1585,23 +1853,23 @@ export default function AdminDashboard() {
 
         {/* Manage Tab */}
         {activeTab === 'manage' && (
-          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-            <h3 className="text-2xl font-bold text-white">{t.manageNews}</h3>
-            <p className="mt-2 text-sm text-slate-400">{t.deleteNewsDesc}</p>
+          <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900">{t.manageNews}</h3>
+            <p className="mt-2 text-sm text-gray-600">{t.deleteNewsDesc}</p>
             <div className="mt-6 space-y-3">
               {articles.length > 0 ? (
                 articles.map((article) => (
-                  <div key={article.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                  <div key={article.id} className="rounded-2xl border border-gray-300 bg-white p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-white">{article.title}</h4>
-                        <p className="mt-1 text-xs text-slate-400">{article.publishedAt}</p>
+                        <h4 className="font-semibold text-gray-900">{article.title}</h4>
+                        <p className="mt-1 text-xs text-gray-600">{article.publishedAt}</p>
                         <div className="mt-1 flex items-center gap-3 text-xs">
-                          <span className="text-slate-400">👁️ {article.views || 0} views</span>
+                          <span className="text-gray-600">👁️ {article.views || 0} views</span>
                           {article.facebookPostId ? (
-                            <span className="text-emerald-400">✓ Posted to Facebook</span>
+                            <span className="text-emerald-600">✓ Posted to Facebook</span>
                           ) : (
-                            <span className="text-slate-500">Not posted to Facebook</span>
+                            <span className="text-gray-500">Not posted to Facebook</span>
                           )}
                         </div>
                       </div>
@@ -1609,19 +1877,19 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={(e) => handlePostToFacebook(article, e)}
-                          className="rounded-xl border border-blue-600 px-3 py-1.5 text-sm text-blue-400 transition hover:bg-blue-600/20"
+                          className="rounded-xl border border-blue-600 px-3 py-1.5 text-sm text-blue-600 transition hover:bg-blue-600/20"
                         >
                           {t.postToFb}
                         </button>
                         <button
                           onClick={() => handleEditArticle(article)}
-                          className="rounded-xl border border-emerald-600 px-3 py-1.5 text-sm text-emerald-400 transition hover:bg-emerald-600/20"
+                          className="rounded-xl border border-emerald-600 px-3 py-1.5 text-sm text-emerald-600 transition hover:bg-emerald-600/20"
                         >
                           {t.editNews}
                         </button>
                         <button
                           onClick={() => handleDeleteArticle(article.id, article.facebookPostId)}
-                          className="rounded-xl border border-rose-600 px-3 py-1.5 text-sm text-rose-400 transition hover:bg-rose-600/20"
+                          className="rounded-xl border border-rose-600 px-3 py-1.5 text-sm text-rose-600 transition hover:bg-rose-600/20"
                         >
                           {t.delete}
                         </button>
@@ -1630,7 +1898,7 @@ export default function AdminDashboard() {
                   </div>
                 ))
               ) : (
-                <p className="text-slate-400">{t.noVisitors}</p>
+                <p className="text-gray-600">{t.noVisitors}</p>
               )}
             </div>
           </div>
@@ -1638,9 +1906,9 @@ export default function AdminDashboard() {
 
         {/* Banners Tab */}
         {activeTab === 'banners' && (
-          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-            <h3 className="text-2xl font-bold text-white">{t.manageBanners}</h3>
-            <p className="mt-2 text-sm text-slate-400">{t.bannersDesc}</p>
+          <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900">{t.manageBanners}</h3>
+            <p className="mt-2 text-sm text-gray-600">{t.bannersDesc}</p>
             
             {/* Upload Form */}
             <form onSubmit={handleBannerUpload} className="mt-6 space-y-4">
@@ -1650,31 +1918,31 @@ export default function AdminDashboard() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.bannerTitle}</label>
+                <label className="block text-sm font-semibold text-gray-700">{t.bannerTitle}</label>
                 <input
                   value={bannerTitle}
                   onChange={(e) => setBannerTitle(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   placeholder={t.bannerTitle}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.bannerSubtitle}</label>
+                <label className="block text-sm font-semibold text-gray-700">{t.bannerSubtitle}</label>
                 <input
                   value={bannerSubtitle}
                   onChange={(e) => setBannerSubtitle(e.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   placeholder={t.bannerSubtitle}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.bannerLocation}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.bannerLocation}</label>
                   <select
                     value={bannerLocation}
                     onChange={(e) => setBannerLocation(e.target.value as 'home' | 'article' | 'category')}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     required
                   >
                     <option value="home">{t.locationHome}</option>
@@ -1683,11 +1951,11 @@ export default function AdminDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.bannerPosition}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.bannerPosition}</label>
                   <select
                     value={bannerPosition}
                     onChange={(e) => setBannerPosition(e.target.value as 'top' | 'middle' | 'bottom')}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     required
                   >
                     <option value="top">{t.positionTop}</option>
@@ -1696,11 +1964,11 @@ export default function AdminDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.bannerSize}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.bannerSize}</label>
                   <select
                     value={bannerSize}
                     onChange={(e) => setBannerSize(e.target.value as 'mobile' | 'desktop' | 'both')}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     required
                   >
                     <option value="mobile">{t.sizeMobile}</option>
@@ -1710,18 +1978,18 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-300">{t.bannerImage}</label>
+                <label className="block text-sm font-semibold text-gray-700">{t.bannerImage}</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
-                  className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                  className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   required
                 />
               </div>
               <button
                 disabled={uploadingBanner}
-                className="w-full rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {uploadingBanner ? t.uploading : t.uploadBanner}
               </button>
@@ -1729,29 +1997,29 @@ export default function AdminDashboard() {
 
             {/* Banners List */}
             <div className="mt-8">
-              <h4 className="text-lg font-semibold text-white mb-4">{t.manageBanners}</h4>
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">{t.manageBanners}</h4>
               
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {banners.length > 0 ? (
                   banners.map((banner) => (
-                    <div key={banner.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                    <div key={banner.id} className="rounded-2xl border border-gray-300 bg-white p-4">
                       <img src={banner.image} alt={banner.title} className="w-full h-32 object-cover rounded-lg mb-3" />
-                      <h4 className="font-semibold text-white text-sm">{banner.title}</h4>
+                      <h4 className="font-semibold text-gray-900 text-sm">{banner.title}</h4>
                       <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                        <span className="px-2 py-1 rounded-full bg-gray-200 text-gray-700">
                           {banner.location === 'home' ? t.locationHome : banner.location === 'article' ? t.locationArticle : t.locationCategory}
                         </span>
-                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                        <span className="px-2 py-1 rounded-full bg-gray-200 text-gray-700">
                           {banner.position === 'top' ? t.positionTop : t.positionBottom}
                         </span>
-                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                        <span className="px-2 py-1 rounded-full bg-gray-200 text-gray-700">
                           {banner.size === 'mobile' ? t.sizeMobile : banner.size === 'desktop' ? t.sizeDesktop : t.sizeBoth}
                         </span>
                       </div>
                       <div className="mt-3 flex gap-2 relative z-10">
                         <button
                           onClick={() => handleDeleteBanner(banner.id)}
-                          className="w-full rounded-xl border border-rose-600 px-3 py-1.5 text-xs text-rose-400 transition hover:bg-rose-600/20 cursor-pointer"
+                          className="w-full rounded-xl border border-rose-600 px-3 py-1.5 text-xs text-rose-600 transition hover:bg-rose-600/20 cursor-pointer"
                         >
                           {t.deleteBanner}
                         </button>
@@ -1759,7 +2027,7 @@ export default function AdminDashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-slate-400 col-span-full">No banners uploaded yet</p>
+                  <p className="text-gray-600 col-span-full">No banners uploaded yet</p>
                 )}
               </div>
             </div>
@@ -1769,37 +2037,37 @@ export default function AdminDashboard() {
         {/* Edit Modal */}
         {editingArticle && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-              <h3 className="text-2xl font-bold text-white">{t.editNews}</h3>
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+              <h3 className="text-2xl font-bold text-gray-900">{t.editNews}</h3>
               <form onSubmit={handleSaveEdit} className="mt-6 space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-300">{t.titleDv}</label>
+                    <label className="block text-sm font-semibold text-gray-700">{t.titleDv}</label>
                     <input
                       value={editTitleDv}
                       onChange={(e) => setEditTitleDv(e.target.value)}
-                      className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                       placeholder="ޚަބަރުގެ ހެޑްލައިން ލިޔުން..."
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-300">{t.title}</label>
+                    <label className="block text-sm font-semibold text-gray-700">{t.title}</label>
                     <input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                       placeholder="Type headline in English..."
                     />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-300">{t.category}</label>
+                    <label className="block text-sm font-semibold text-gray-700">{t.category}</label>
                     <select
                       value={editCategory}
                       onChange={(e) => setEditCategory(e.target.value)}
-                      className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                       required
                     >
                       {categories.map((cat) => (
@@ -1810,11 +2078,11 @@ export default function AdminDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-300">Category (English)</label>
+                    <label className="block text-sm font-semibold text-gray-700">Category (English)</label>
                     <select
                       value={editCategory}
                       onChange={(e) => setEditCategory(e.target.value)}
-                      className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                       required
                     >
                       {categories.map((cat) => (
@@ -1826,12 +2094,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">ލިޔެފައިވާ ފަރާތް (Author)</label>
+                  <label className="block text-sm font-semibold text-gray-700">ލިޔެފައިވާ ފަރާތް (Author)</label>
                   <input
                     list="edit-authors-list"
                     value={editAuthor}
                     onChange={(e) => setEditAuthor(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="ލިޔެފައިވާ ފަރާތުގެ ނަން..."
                   />
                   <datalist id="edit-authors-list">
@@ -1841,58 +2109,58 @@ export default function AdminDashboard() {
                   </datalist>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.excerptDv}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.excerptDv}</label>
                   <input
                     value={editExcerptDv}
                     onChange={(e) => setEditExcerptDv(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="ޚަބަރުގެ ކުރުތަކެއް ލިޔުން..."
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.excerpt}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.excerpt}</label>
                   <input
                     value={editExcerpt}
                     onChange={(e) => setEditExcerpt(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="Type short description in English..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.photoUrl}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.photoUrl}</label>
                   <input
                     value={editImageUrl}
                     onChange={(e) => setEditImageUrl(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">Upload Image</label>
+                  <label className="block text-sm font-semibold text-gray-700">Upload Image</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setEditArticleFile(e.target.files?.[0] || null)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ URL (Video URL)</label>
+                  <label className="block text-sm font-semibold text-gray-700">ވީޑިއޯ URL (Video URL)</label>
                   <input
                     value={editVideoUrl}
                     onChange={(e) => setEditVideoUrl(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder="https://example.com/video.mp4"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">ވީޑިއޯ އަޕްލޯޑް (Upload Video)</label>
+                  <label className="block text-sm font-semibold text-gray-700">ވީޑިއޯ އަޕްލޯޑް (Upload Video)</label>
                   <div className="mt-2 space-y-2">
                     <select
                       value={editVideoUploadOption}
                       onChange={(e) => setEditVideoUploadOption(e.target.value as 'cloudinary' | 'github')}
-                      className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      className="w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     >
                       <option value="cloudinary">Cloudinary (100GB Free)</option>
                       <option value="github">GitHub (Save Storage)</option>
@@ -1901,18 +2169,18 @@ export default function AdminDashboard() {
                       type="file"
                       accept="video/*"
                       onChange={(e) => setEditVideoFile(e.target.files?.[0] || null)}
-                      className="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                      className="w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                       disabled={uploadingEditVideo}
                     />
-                    {uploadingEditVideo && <p className="text-xs text-slate-400">Uploading video...</p>}
+                    {uploadingEditVideo && <p className="text-xs text-gray-600">Uploading video...</p>}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300">{t.readingTime}</label>
+                  <label className="block text-sm font-semibold text-gray-700">{t.readingTime}</label>
                   <select
                     value={editReadingTime}
                     onChange={(e) => setEditReadingTime(e.target.value)}
-                    className="mt-2 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="mt-2 w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     required
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((min) => (
@@ -1923,45 +2191,45 @@ export default function AdminDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">{t.newsContent}</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t.newsContent}</label>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphDv}</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t.paragraphDv}</label>
                       <textarea
                         value={editBody}
                         onChange={(e) => setEditBody(e.target.value)}
-                        className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                        className="min-h-[200px] w-full rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500"
                         placeholder="ޚަބަރުގެ މައްޗާ ލިޔުން..."
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paragraphEn}</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t.paragraphEn}</label>
                       <textarea
                         value={editBodyEn}
                         onChange={(e) => setEditBodyEn(e.target.value)}
-                        className="min-h-[200px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-400"
+                        className="min-h-[200px] w-full rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500"
                         placeholder="Type article content in English..."
                       />
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <label className="inline-flex items-center gap-2 text-slate-300">
+                  <label className="inline-flex items-center gap-2 text-gray-700">
                     <input
                       type="checkbox"
                       checked={editTrending}
                       onChange={(e) => setEditTrending(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-700 bg-slate-950"
+                      className="h-4 w-4 rounded border-gray-300 bg-white"
                     />
                     {t.trending}
                   </label>
-                  <label className="inline-flex items-center gap-2 text-slate-300">
+                  <label className="inline-flex items-center gap-2 text-gray-700">
                     <input
                       type="checkbox"
                       checked={editBreaking}
                       onChange={(e) => setEditBreaking(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-700 bg-slate-950"
+                      className="h-4 w-4 rounded border-gray-300 bg-white"
                     />
                     {t.breaking}
                   </label>
@@ -1969,14 +2237,14 @@ export default function AdminDashboard() {
                 <div className="flex gap-4">
                   <button
                     type="submit"
-                    className="flex-1 rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-400"
+                    className="flex-1 rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400"
                   >
                     {t.saveChanges}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingArticle(null)}
-                    className="flex-1 rounded-3xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-800/80"
+                    className="flex-1 rounded-3xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
                   >
                     {t.cancel}
                   </button>
@@ -1989,26 +2257,26 @@ export default function AdminDashboard() {
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-              <h3 className="text-xl font-semibold text-white">{t.analytics}</h3>
+            <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+              <h3 className="text-xl font-semibold text-gray-900">{t.analytics}</h3>
               <div className="mt-6 space-y-4">
-                <div className="rounded-2xl bg-slate-950/80 p-4">
-                  <p className="text-sm text-slate-400">{t.totalNews}</p>
-                  <p className="mt-2 text-3xl font-bold text-white">{articlesCount}</p>
+                <div className="rounded-2xl bg-gray-100 p-4">
+                  <p className="text-sm text-gray-600">{t.totalNews}</p>
+                  <p className="mt-2 text-3xl font-bold text-gray-900">{articlesCount}</p>
                 </div>
-                <div className="rounded-2xl bg-slate-950/80 p-4">
-                  <p className="text-sm text-slate-400">{t.totalVisits}</p>
-                  <p className="mt-2 text-3xl font-bold text-white">{visitorCount}</p>
+                <div className="rounded-2xl bg-gray-100 p-4">
+                  <p className="text-sm text-gray-600">{t.totalVisits}</p>
+                  <p className="mt-2 text-3xl font-bold text-gray-900">{visitorCount}</p>
                 </div>
-                <div className="rounded-2xl bg-slate-950/80 p-4">
-                  <p className="text-sm text-slate-400">{t.uniqueVisitors}</p>
-                  <p className="mt-2 text-3xl font-bold text-white">{uniqueVisitors}</p>
+                <div className="rounded-2xl bg-gray-100 p-4">
+                  <p className="text-sm text-gray-600">{t.uniqueVisitors}</p>
+                  <p className="mt-2 text-3xl font-bold text-gray-900">{uniqueVisitors}</p>
                 </div>
               </div>
             </div>
-            <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
+            <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-white">{t.facebookPage}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t.facebookPage}</h3>
                 <div
                   role="button"
                   tabIndex={0}
@@ -2026,7 +2294,7 @@ export default function AdminDashboard() {
                       loadFacebookInsights();
                     }
                   }}
-                  className={`rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800/80 cursor-pointer select-none ${loadingInsights ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`rounded-2xl border border-gray-300 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 cursor-pointer select-none ${loadingInsights ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {loadingInsights ? t.loadingInsights : t.refreshInsights}
                 </div>
@@ -2034,54 +2302,54 @@ export default function AdminDashboard() {
               <div className="mt-6 space-y-4">
                 {facebookInsights ? (
                   <>
-                    <div className="rounded-2xl bg-slate-950/80 p-4">
-                      <p className="text-sm text-slate-400">{t.pageViews}</p>
-                      <p className="mt-2 text-3xl font-bold text-white">{facebookInsights.page_views || 'N/A'}</p>
+                    <div className="rounded-2xl bg-gray-100 p-4">
+                      <p className="text-sm text-gray-600">{t.pageViews}</p>
+                      <p className="mt-2 text-3xl font-bold text-gray-900">{facebookInsights.page_views || 'N/A'}</p>
                     </div>
-                    <div className="rounded-2xl bg-slate-950/80 p-4">
-                      <p className="text-sm text-slate-400">{t.pageLikes}</p>
-                      <p className="mt-2 text-3xl font-bold text-white">{facebookInsights.page_likes || 'N/A'}</p>
+                    <div className="rounded-2xl bg-gray-100 p-4">
+                      <p className="text-sm text-gray-600">{t.pageLikes}</p>
+                      <p className="mt-2 text-3xl font-bold text-gray-900">{facebookInsights.page_likes || 'N/A'}</p>
                     </div>
-                    <div className="rounded-2xl bg-slate-950/80 p-4">
-                      <p className="text-sm text-slate-400">{t.pageFollowers}</p>
-                      <p className="mt-2 text-3xl font-bold text-white">{facebookInsights.page_followers || 'N/A'}</p>
+                    <div className="rounded-2xl bg-gray-100 p-4">
+                      <p className="text-sm text-gray-600">{t.pageFollowers}</p>
+                      <p className="mt-2 text-3xl font-bold text-gray-900">{facebookInsights.page_followers || 'N/A'}</p>
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-2xl bg-slate-950/80 p-4">
-                    <p className="text-sm text-slate-400">{loadingInsights ? t.loadingInsights : 'Click refresh to load insights'}</p>
+                  <div className="rounded-2xl bg-gray-100 p-4">
+                    <p className="text-sm text-gray-600">{loadingInsights ? t.loadingInsights : 'Click refresh to load insights'}</p>
                   </div>
                 )}
               </div>
             </div>
-            <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-              <h3 className="text-xl font-semibold text-white">{t.visitorLog}</h3>
+            <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+              <h3 className="text-xl font-semibold text-gray-900">{t.visitorLog}</h3>
               <div className="mt-4 space-y-3 text-sm max-h-96 overflow-y-auto">
                 {topVisitors.length > 0 ? (
                   topVisitors.map((visitor) => {
                     const parsed = parseUserAgent(visitor.userAgent);
                     return (
-                      <div key={visitor.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-3">
+                      <div key={visitor.id} className="rounded-2xl border border-gray-300 bg-gray-100 p-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <p className="font-semibold text-white">{visitor.path || 'Home'}</p>
-                            <div className="mt-2 space-y-1 text-xs text-slate-400">
-                              <p><span className="text-slate-500">{t.device}:</span> {visitor.deviceType || parsed.deviceType}</p>
-                              <p><span className="text-slate-500">{t.browser}:</span> {visitor.browser || parsed.browser}</p>
-                              <p><span className="text-slate-500">{t.os}:</span> {visitor.os || parsed.os}</p>
-                              <p><span className="text-slate-500">{t.screen}:</span> {visitor.screenResolution || visitor.viewport || 'Not available'}</p>
-                              <p><span className="text-slate-500">{t.referrer}:</span> {visitor.referrer || 'Direct'}</p>
+                            <p className="font-semibold text-gray-900">{visitor.path || 'Home'}</p>
+                            <div className="mt-2 space-y-1 text-xs text-gray-600">
+                              <p><span className="text-gray-500">{t.device}:</span> {visitor.deviceType || parsed.deviceType}</p>
+                              <p><span className="text-gray-500">{t.browser}:</span> {visitor.browser || parsed.browser}</p>
+                              <p><span className="text-gray-500">{t.os}:</span> {visitor.os || parsed.os}</p>
+                              <p><span className="text-gray-500">{t.screen}:</span> {visitor.screenResolution || visitor.viewport || 'Not available'}</p>
+                              <p><span className="text-gray-500">{t.referrer}:</span> {visitor.referrer || 'Direct'}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-gray-500">
                               {visitor.timestamp ? new Date(visitor.timestamp.seconds * 1000).toLocaleString() : visitor.visitTime || 'Unknown'}
                             </p>
-                            <p className="text-xs text-slate-500">{visitor.timezone || 'Unknown'}</p>
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="text-xs text-gray-500">{visitor.timezone || 'Unknown'}</p>
+                            <p className="mt-1 text-xs text-gray-600">
                               {visitor.isNewVisitor ? '🆕 New' : '↩️ Return'}
                             </p>
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-gray-600">
                               {visitor.isSameDevice !== undefined ? (visitor.isSameDevice ? `📱 ${t.sameDevice}` : `🆕 ${t.newDevice}`) : ''}
                             </p>
                           </div>
@@ -2090,7 +2358,7 @@ export default function AdminDashboard() {
                     );
                   })
                 ) : (
-                  <p className="text-slate-400">{t.noVisitors}</p>
+                  <p className="text-gray-600">{t.noVisitors}</p>
                 )}
               </div>
             </div>
@@ -2099,36 +2367,36 @@ export default function AdminDashboard() {
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-            <h3 className="text-2xl font-bold text-white">{t.settings}</h3>
+          <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900">{t.settings}</h3>
             <div className="mt-6 space-y-6">
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white">{t.translateTitle}</h4>
-                <p className="mt-2 text-sm text-slate-400">{t.translateDesc}</p>
+              <div className="rounded-2xl border border-gray-300 bg-gray-100 p-4">
+                <h4 className="font-semibold text-gray-900">{t.translateTitle}</h4>
+                <p className="mt-2 text-sm text-gray-600">{t.translateDesc}</p>
                 <div className="mt-4 space-y-3">
                   <textarea
                     value={englishText}
                     onChange={(e) => setEnglishText(e.target.value)}
-                    className="min-h-[80px] w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
+                    className="min-h-[80px] w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
                     placeholder={t.englishPlaceholder}
                   />
                   <button
                     onClick={handleTranslate}
                     disabled={translating || !englishText.trim()}
-                    className="w-full rounded-2xl bg-brand-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-2xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {translating ? t.translating : t.translate}
                   </button>
                   {dhivehiText && (
                     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                      <p className="text-sm font-semibold text-emerald-400 mb-2">{t.dhivehi}:</p>
-                      <p className="text-slate-100">{dhivehiText}</p>
+                      <p className="text-sm font-semibold text-emerald-600 mb-2">{t.dhivehi}:</p>
+                      <p className="text-gray-900">{dhivehiText}</p>
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(dhivehiText);
                           setMessage(t.copied);
                         }}
-                        className="mt-3 rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800/80"
+                        className="mt-3 rounded-xl border border-gray-300 px-3 py-1.5 text-xs text-gray-700 transition hover:bg-gray-200"
                       >
                         {t.copy}
                       </button>
@@ -2136,17 +2404,17 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white">{t.changePassword}</h4>
-                <p className="mt-2 text-sm text-slate-400">{t.changePasswordDesc}</p>
-                <button className="mt-4 rounded-2xl border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800/80">
+              <div className="rounded-2xl border border-gray-300 bg-gray-100 p-4">
+                <h4 className="font-semibold text-gray-900">{t.changePassword}</h4>
+                <p className="mt-2 text-sm text-gray-600">{t.changePasswordDesc}</p>
+                <button className="mt-4 rounded-2xl border border-gray-300 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-200">
                   {t.change}
                 </button>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white">{t.deleteAccount}</h4>
-                <p className="mt-2 text-sm text-slate-400">{t.deleteAccountDesc}</p>
-                <button className="mt-4 rounded-2xl border border-rose-600 px-4 py-2 text-sm text-rose-400 transition hover:bg-rose-600/20">
+              <div className="rounded-2xl border border-gray-300 bg-gray-100 p-4">
+                <h4 className="font-semibold text-gray-900">{t.deleteAccount}</h4>
+                <p className="mt-2 text-sm text-gray-600">{t.deleteAccountDesc}</p>
+                <button className="mt-4 rounded-2xl border border-rose-600 px-4 py-2 text-sm text-rose-600 transition hover:bg-rose-600/20">
                   {t.delete}
                 </button>
               </div>
@@ -2154,519 +2422,92 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Image Generator Tab */}
-        {activeTab === 'imageGenerator' && (
-          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-            <h3 className="text-2xl font-bold text-white">{t.imageGenerator}</h3>
-            <div className="mt-6 space-y-6">
-              {/* Upload Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">އިމޭޖް އަޕްލޯޑް ކުރުން</h4>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        setUploadedImage(event.target?.result as string);
-                        setGeneratedImage(null);
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                />
-              </div>
-
-              {/* Text Input Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް އިންޕުޓް</h4>
-                <input
-                  type="text"
-                  value={overlayText}
-                  onChange={(e) => setOverlayText(e.target.value)}
-                  placeholder="އެއްވެސް ޓެކްސްޓެއް ލިޔުން..."
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400 mb-2"
-                />
-                <input
-                  type="text"
-                  value={overlayText2}
-                  onChange={(e) => setOverlayText2(e.target.value)}
-                  placeholder="ދެވަނަ ރޯގަލް (އޮޕްޝަނަލް)"
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none focus:border-brand-400"
-                />
-              </div>
-
-              {/* Logo Position Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ލޮގޯ ޕޮޒިޝަން</h4>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setLogoPosition('top-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'top-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Left
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('top-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'top-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Center
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('top-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'top-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Right
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('middle-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'middle-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Middle Left
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('middle-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'middle-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Center
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('middle-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'middle-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Middle Right
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('bottom-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'bottom-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Left
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('bottom-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'bottom-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Center
-                  </button>
-                  <button
-                    onClick={() => setLogoPosition('bottom-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      logoPosition === 'bottom-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Right
-                  </button>
-                </div>
-              </div>
-
-              {/* Logo Opacity Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ލޮގޯ އޮޕެސިޓީ</h4>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={logoOpacity}
-                    onChange={(e) => setLogoOpacity(Number(e.target.value))}
-                    className="flex-1 h-2 rounded-lg bg-slate-700 appearance-none cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-400 w-16 text-right">{logoOpacity}%</span>
-                </div>
-              </div>
-
-              {/* Text Position Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް ޕޮޒިޝަން (ފުރަތަމަ ރޯގަލް)</h4>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setTextPosition('top-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'top-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Left
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('top-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'top-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Center
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('top-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'top-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Right
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('middle-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'middle-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Middle Left
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('middle-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'middle-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Center
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('middle-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'middle-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Middle Right
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('bottom-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'bottom-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Left
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('bottom-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'bottom-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Center
-                  </button>
-                  <button
-                    onClick={() => setTextPosition('bottom-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition === 'bottom-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Right
-                  </button>
-                </div>
-              </div>
-
-              {/* Text Position 2 Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ޓެކްސްޓް ޕޮޒިޝަން (ދެވަނަ ރޯގަލް)</h4>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setTextPosition2('top-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'top-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Left
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('top-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'top-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Center
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('top-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'top-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Top Right
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('middle-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'middle-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Middle Left
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('middle-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'middle-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Center
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('middle-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'middle-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Middle Right
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('bottom-left')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'bottom-left'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Left
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('bottom-center')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'bottom-center'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Center
-                  </button>
-                  <button
-                    onClick={() => setTextPosition2('bottom-right')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      textPosition2 === 'bottom-right'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bottom Right
-                  </button>
-                </div>
-              </div>
-
-              {/* Color Picker Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ބެނަރ ކަލަރ</h4>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="color"
-                    value={bannerColor}
-                    onChange={(e) => setBannerColor(e.target.value)}
-                    className="h-12 w-20 rounded-lg border border-slate-700 bg-slate-950/80 cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-400">{bannerColor}</span>
-                </div>
-              </div>
-
-              {/* Font Size Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ފޮންޓް ސައިޒް</h4>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="20"
-                    max="100"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="flex-1 h-2 rounded-lg bg-slate-700 appearance-none cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-400 w-16 text-right">{fontSize}px</span>
-                </div>
-              </div>
-
-              {/* Font Color Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ފޮންޓް ކަލަރ</h4>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="color"
-                    value={fontColor}
-                    onChange={(e) => setFontColor(e.target.value)}
-                    className="h-12 w-20 rounded-lg border border-slate-700 bg-slate-950/80 cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-400">{fontColor}</span>
-                </div>
-              </div>
-
-              {/* Font Style Section */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                <h4 className="font-semibold text-white mb-3">ފޮންޓް ސްޓައިލް</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setFontStyle('normal')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      fontStyle === 'normal'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Normal
-                  </button>
-                  <button
-                    onClick={() => setFontStyle('bold')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      fontStyle === 'bold'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bold
-                  </button>
-                  <button
-                    onClick={() => setFontStyle('italic')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      fontStyle === 'italic'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Italic
-                  </button>
-                  <button
-                    onClick={() => setFontStyle('bold italic')}
-                    className={`rounded-lg px-3 py-2 text-sm transition ${
-                      fontStyle === 'bold italic'
-                        ? 'bg-brand-500 text-slate-950'
-                        : 'border border-slate-700 text-slate-300 hover:border-slate-500'
-                    }`}
-                  >
-                    Bold Italic
-                  </button>
-                </div>
-              </div>
-
-              {/* Real-time Preview Section */}
-              {uploadedImage && (
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-                  <h4 className="font-semibold text-white mb-3">ޕްރިވިއު</h4>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <h5 className="mb-2 text-sm font-medium text-slate-400">އޮރިޖިނަލް އިމޭޖް</h5>
-                      <img
-                        src={uploadedImage}
-                        alt="Uploaded"
-                        className="h-auto w-full rounded-lg border border-slate-700"
-                      />
-                    </div>
-                    {generatedImage && (
-                      <div>
-                        <h5 className="mb-2 text-sm font-medium text-slate-400">ޖެނެރޭޓް ކުރެވުނު އިމޭޖް</h5>
-                        <img
-                          src={generatedImage}
-                          alt="Generated"
-                          className="h-auto w-full rounded-lg border border-slate-700"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Download Button */}
-              {generatedImage && (
-                <button
-                  onClick={() => {
-                    if (!generatedImage) return;
-                    const link = document.createElement('a');
-                    link.href = generatedImage;
-                    link.download = `generated-image-${Date.now()}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  className="w-full rounded-2xl bg-emerald-500 px-6 py-3 font-semibold text-white transition hover:bg-emerald-400"
-                >
-                  އިމޭޖް ޑައުންލޯޑް ކުރުން
-                </button>
-              )}
-
-              {/* Hidden Canvas */}
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-          </div>
-        )}
-
         {/* Notifications Tab */}
         {activeTab === 'notifications' && (
-          <div className="rounded-[32px] border border-white/5 bg-slate-900/90 p-6 shadow-soft">
-            <h3 className="text-2xl font-bold text-white">ނޮޓިފިކޭޝަންތައް</h3>
+          <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900">ނޮޓިފިކޭޝަންތައް</h3>
             <div className="mt-6 space-y-4">
               {loadingNotifications ? (
-                <p className="text-center text-slate-400">ލޯޑް ކުރަމުން...</p>
+                <p className="text-center text-gray-600">ލޯޑް ކުރަމުން...</p>
               ) : notifications.length === 0 ? (
-                <p className="text-center text-slate-400">ނޮޓިފިކޭޝަންތައް ނެތް</p>
+                <p className="text-center text-gray-600">ނޮޓިފިކޭޝަންތައް ނެތް</p>
               ) : (
                 notifications.map((notification: any) => (
-                  <div key={notification.id} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5">
-                    <div className="flex items-center justify-between gap-4 text-sm text-slate-300">
+                  <div key={notification.id} className="rounded-2xl border border-gray-300 bg-gray-100 p-5">
+                    <div className="flex items-center justify-between gap-4 text-sm text-gray-700">
                       <p>{notification.title}</p>
                       <span className="text-xs text-slate-500">{notification.time}</span>
                     </div>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Rephrase Tab */}
+        {activeTab === 'rephrase' && (
+          <div className="rounded-[32px] border border-gray-200 bg-white p-6 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900">ޚަބަރު އުފެއްދާ (Create News)</h3>
+            <p className="mt-2 text-sm text-gray-600">ޚަބަރު ކޮޕީ ކުރާ އަދި އުފެއްދާ</p>
+            
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700">ޚަބަރު ކޮޕީ ކުރާ (Paste News Content)</label>
+                <textarea
+                  value={fetchedContent}
+                  onChange={(e) => setFetchedContent(e.target.value)}
+                  className="mt-2 min-h-[300px] w-full rounded-3xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-brand-500"
+                  placeholder="ޚަބަރު ކޮޕީ ކުރާ... (އެކްސާޕްޓް އަދި ބޮޑީ އެކުލަވާލާ)"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  // Parse the pasted content to extract title, excerpt, and body
+                  const lines = fetchedContent.split('\n').filter(line => line.trim());
+                  
+                  // First line is the title
+                  const title = lines[0] || '';
+                  
+                  // Find the "އެކްސާޕްޓް" (Excerpt) section
+                  const excerptIndex = lines.findIndex(line => line.trim() === 'އެކްސާޕްޓް');
+                  const bodyIndex = lines.findIndex(line => line.trim() === 'ބޮޑީ');
+                  
+                  let excerpt = '';
+                  let body = '';
+                  
+                  if (excerptIndex !== -1 && bodyIndex !== -1) {
+                    // Excerpt is between "އެކްސާޕްޓް" and "ބޮޑީ"
+                    excerpt = lines.slice(excerptIndex + 1, bodyIndex).join('\n').trim();
+                    // Body is after "ބޮޑީ"
+                    body = lines.slice(bodyIndex + 1).join('\n').trim();
+                  } else if (excerptIndex !== -1) {
+                    // Only excerpt found, rest is body
+                    excerpt = lines.slice(excerptIndex + 1).join('\n').trim();
+                    body = excerpt;
+                  } else {
+                    // No sections found, use everything after title as body
+                    body = lines.slice(1).join('\n').trim();
+                    excerpt = body.split('\n')[0]?.substring(0, 300) || '';
+                  }
+                  
+                  // Auto-fill the create article form
+                  setTitle(title);
+                  setTitleDv(title);
+                  setExcerpt(excerpt);
+                  setExcerptDv(excerpt);
+                  setBody(body);
+                  setBodyEn(body);
+                  setActiveTab('articles');
+                  setMessage('Content auto-filled to Create News');
+                }}
+                disabled={!fetchedContent.trim()}
+                className="w-full rounded-3xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:opacity-50"
+              >
+                ޚަބަރު އުފެއްދާ (Create News)
+              </button>
             </div>
           </div>
         )}

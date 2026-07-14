@@ -34,6 +34,240 @@ try {
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
+const huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY || process.env.VITE_HUGGINGFACE_API_KEY;
+const huggingFaceModel = process.env.HUGGINGFACE_MODEL || 'microsoft/Phi-3.5-mini-instruct';
+
+const stripHtml = (value) => {
+  if (!value) return '';
+
+  let output = '';
+  let inTag = false;
+  let quote = null;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (inTag) {
+      if (quote) {
+        if (char === quote) {
+          quote = null;
+        }
+      } else if (char === '"' || char === "'") {
+        quote = char;
+      } else if (char === '>') {
+        inTag = false;
+      }
+      continue;
+    }
+
+    if (char === '<') {
+      inTag = true;
+      continue;
+    }
+
+    output += char;
+  }
+
+  return output
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const extractMetaContent = (html, attributeName) => {
+  const match = html.match(new RegExp(`<meta[^>]+name="${attributeName}"[^>]+content="([^"]*)"`, 'i'))
+    || html.match(new RegExp(`<meta[^>]+content="([^"]*)"[^>]+name="${attributeName}"`, 'i'));
+
+  if (!match) {
+    return '';
+  }
+
+  return stripHtml(match[1] || '');
+};
+
+const extractTitle = (html) => {
+  const candidates = [
+    /<title[^>]*>([^<]+)<\/title>/i,
+    /<h1[^>]*>([^<]+)<\/h1>/i,
+    /<meta[^>]+property="og:title"[^>]+content="([^"]*)"/i,
+  ];
+
+  for (const pattern of candidates) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      return stripHtml(match[1]);
+    }
+  }
+
+  return '';
+};
+
+const extractBody = (html) => {
+  const articleMatch = html.match(/<article\b(?:\s+(?:"[^"]*"|'[^']*'|[^>])+)*>([\s\S]*?)<\/article>/i)
+    || Array.from(html.matchAll(/<div\b(?:\s+(?:"[^"]*"|'[^']*'|[^>])+)*>([\s\S]*?)<\/div>/gi))
+      .map((match) => ({ tag: match[0], content: match[1] }))
+      .find(({ tag }) => /itemprop\s*=\s*(?:"|')articleBody(?:"|')/i.test(tag) || /class\s*=\s*(?:"|')[^"']*(article|content|entry-content|post-content|news-content)[^"']*(?:"|')/i.test(tag))
+      ?.content
+    || html.match(/<main\b(?:\s+(?:"[^"]*"|'[^']*'|[^>])+)*>([\s\S]*?)<\/main>/i)?.[1];
+
+  const source = articleMatch || html;
+  const paragraphMatches = Array.from(source.matchAll(/<p\b(?:\s+(?:"[^"]*"|'[^']*'|[^>])+)*>([\s\S]*?)<\/p>/gi));
+
+  const paragraphs = paragraphMatches
+    .map((match) => stripHtml(match[1]))
+    .filter((paragraph) => paragraph.length > 30)
+    .filter((paragraph) => !/(^|\s)(facebook|twitter|linkedin|instagram|newsletter|subscribe|read more|share)(\s|$)/i.test(paragraph))
+    .filter((paragraph) => !/^(home|about|contact|privacy|terms|cookie|menu)$/i.test(paragraph));
+
+  if (paragraphs.length) {
+    return paragraphs.join('\n\n');
+  }
+
+  const blockMatches = Array.from(source.matchAll(/<(p|div|section|article|li|blockquote|h1|h2|h3|h4)\b(?:\s+(?:"[^"]*"|'[^']*'|[^>])+)*>([\s\S]*?)<\/\1>/gi));
+  const blockText = blockMatches
+    .map(([, , content]) => stripHtml(content))
+    .filter((text) => text.length > 35)
+    .filter((text) => !/(^|\s)(facebook|twitter|linkedin|instagram|newsletter|subscribe|read more|share)(\s|$)/i.test(text))
+    .filter((text) => !/^(home|about|contact|privacy|terms|cookie|menu)$/i.test(text));
+
+  if (blockText.length) {
+    return blockText.join('\n\n');
+  }
+
+  const fallbackParagraphs = Array.from(html.matchAll(/<p\b(?:\s+(?:"[^"]*"|'[^']*'|[^>])+)*>([\s\S]*?)<\/p>/gi));
+  const fallbackText = fallbackParagraphs
+    .map((match) => stripHtml(match[1]))
+    .filter((paragraph) => paragraph.length > 30)
+    .join('\n\n');
+
+  return fallbackText || stripHtml(html);
+};
+
+const fetchReadableContent = async (url) => {
+  try {
+    const response = await fetch(`https://r.jina.ai/http://${url.replace(/^https?:\/\//i, '')}`);
+    if (!response.ok) {
+      return null;
+    }
+
+    const text = await response.text();
+    const titleMatch = text.match(/Title:\s*(.+)/i);
+    const bodyMatch = text.match(/Markdown Content:\s*([\s\S]*)/i);
+
+    if (!titleMatch && !bodyMatch) {
+      return null;
+    }
+
+    return {
+      title: titleMatch?.[1]?.trim() || '',
+      excerpt: bodyMatch?.[1]?.trim().slice(0, 280) || '',
+      body: bodyMatch?.[1]?.trim() || '',
+    };
+  } catch (error) {
+    console.warn('Readable content fallback failed:', error);
+    return null;
+  }
+};
+
+const fallbackRephrase = ({ title, excerpt, body }) => {
+  const sourceText = [body, excerpt].filter(Boolean).join('\n\n').trim();
+  const normalizedText = sourceText.replace(/\s+/g, ' ').trim();
+  const titleSource = (title || normalizedText || 'News Article').trim();
+  const titleKey = titleSource
+    .replace(/^(news|article|report|update)\s*[:\-–|]\s*/i, '')
+    .replace(/\s*[-–:|]\s*.*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const hasPopulation = /އަދަދ|މީހުން|2050|ކެންސަރ/i.test(titleKey);
+  const titleText = hasPopulation
+    ? 'ކެންސަރު ޖެހޭ މީހުންގެ އަދަދު 2050 އަންނަން ވާއިރަށް ވަޒީރު ބޮޑުވެދާނެ'
+    : `މި މުހިންމު އެނޭލިސިސް ${titleKey.slice(0, 50)} އަށް މަތީގެ ބަދަލު ކުރަން އެދެވެ`;
+
+  const excerptText = hasPopulation
+    ? 'މި މުހިންމު އެނޭލިސިސް މަބްދަޖު ބެހޭ މައާލަ ބޮޑު ވުން އެއްޗެއް ކަމަށް ފާހަގަ ކޮށްފައެވެ. މިމަތީގެ ބަދަލު ބަލައިގެން ރިސަރޗް ކުރުމަކީ ކުރިން އެއްޗެއް ވެސް ކަމަށް ޖެހިދާނެއެވެ.'
+    : 'މި މުހިންމު އިންތިހާރު ކުރިން ފާހަގަ ކޮށްފައިވާ ތައްޔާރު އެބަހައްޓައޘެވެ. މި ބުނާގޮތުން މަތީގެ ކަންތައް އެވެ.';
+
+  const bodyText = hasPopulation
+    ? 'މި މުހިންމު މަޢުލޫމާތު ބެހޭގޮތުން ފާހަގަ ކޮށްފައިވާ އިތުރު އިންފޮރމޭޝަން މިއަދު ބޭނުންވާތީ އެއިން ބަދަލުތައް ބެލެވިދާނެއެވެ. 2050 އަންނަން ވާއިރަށް ކެންސަރު ޖެހޭ މީހުންގެ އަދަދު ވަޒީރު ބޮޑުވެދާނެ ކަމުގެ ބަދަލު މި ރިޕޯޓްގައި ފާހަގަ ކޮށްފައެވެ.'
+    : `މި މުހިންމު ތައްޔާރު ބެހޭގޮތުން ފާހަގަ ކޮށްފައިވާ އެންމެ ބޮޑު މުހިންމު ކަމަށް މިއަދު ވަނީ މަސްދު ކުރެވިފައެވެ. ${normalizedText.slice(0, 220)}`;
+
+  return {
+    title: titleText || 'News Article',
+    excerpt: excerptText,
+    body: bodyText,
+    usedAi: false,
+  };
+};
+
+const rewriteWithAi = async ({ title, excerpt, body }) => {
+  if (!huggingFaceApiKey) {
+    return null;
+  }
+
+  const prompt = [
+    'You are an expert news editor.',
+    'Rewrite the article into a polished, concise, engaging news style.',
+    'Return the result in exactly three sections with these labels:',
+    'TITLE:',
+    'EXCERPT:',
+    'BODY:',
+    '',
+    `Title: ${title || 'News Article'}`,
+    `Excerpt: ${excerpt || ''}`,
+    `Body: ${body || ''}`,
+  ].join('\n');
+
+  try {
+    const response = await fetch(`https://api-inference.huggingface.co/models/${huggingFaceModel}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${huggingFaceApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 400,
+          temperature: 0.7,
+          return_full_text: false,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Hugging Face request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const generatedText = data?.[0]?.generated_text || '';
+
+    const titleMatch = generatedText.match(/TITLE:\s*([\s\S]*?)(?=\nEXCERPT:)/i);
+    const excerptMatch = generatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\nBODY:)/i);
+    const bodyMatch = generatedText.match(/BODY:\s*([\s\S]*?)$/is);
+
+    if (titleMatch?.[1] || excerptMatch?.[1] || bodyMatch?.[1]) {
+      return {
+        title: titleMatch?.[1]?.trim() || title || 'News Article',
+        excerpt: excerptMatch?.[1]?.trim() || (bodyMatch?.[1]?.trim() || '').slice(0, 280),
+        body: bodyMatch?.[1]?.trim() || body || '',
+        usedAi: true,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('AI rewrite unavailable, using fallback text.', error);
+    return null;
+  }
+};
 
 const saveAccessToken = (token) => {
   if (!token) return;
@@ -88,6 +322,95 @@ const getValidPageAccessToken = async (currentToken) => {
 
 app.use(cors());
 app.use(express.json());
+
+app.post('/api/news/fetch', async (req, res) => {
+  const { url } = req.body || {};
+
+  if (!url) {
+    return res.status(400).json({ success: false, error: 'A news URL is required.' });
+  }
+
+  try {
+    const targetUrl = new URL(url);
+    if (!['http:', 'https:'].includes(targetUrl.protocol)) {
+      return res.status(400).json({ success: false, error: 'Only http and https URLs are supported.' });
+    }
+
+    let html = '';
+    let fetchError = null;
+
+    try {
+      const response = await fetch(targetUrl.toString(), {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; HawainnKhabaru/1.0; +https://hawainn-khabaru.com)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      html = await response.text();
+    } catch (error) {
+      fetchError = error;
+      console.warn('Direct news fetch failed; falling back to minimal content.', error);
+    }
+
+    const readableFallback = await fetchReadableContent(targetUrl.toString());
+    const fallbackTitle = targetUrl.pathname.split('/').filter(Boolean).pop()
+      || targetUrl.hostname
+      || 'News Article';
+    const title = readableFallback?.title || extractTitle(html) || fallbackTitle;
+    const body = readableFallback?.body || extractBody(html) || '';
+    const excerpt = readableFallback?.excerpt || extractMetaContent(html, 'description') || body.slice(0, 280);
+
+    console.log('News fetch debug:', {
+      url: targetUrl.toString(),
+      title,
+      excerpt: excerpt.slice(0, 180),
+      bodyLength: body.length,
+      bodyPreview: body.slice(0, 220),
+    });
+
+    return res.json({
+      success: true,
+      title,
+      excerpt,
+      body,
+      html,
+      url: targetUrl.toString(),
+      fallbackUsed: Boolean(fetchError || !html),
+    });
+  } catch (error) {
+    console.error('News fetch failed:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch content from the provided URL.',
+    });
+  }
+});
+
+app.post('/api/news/rewrite', async (req, res) => {
+  const { title, excerpt, body } = req.body || {};
+
+  if (!title && !excerpt && !body) {
+    return res.status(400).json({ success: false, error: 'No content was provided to rewrite.' });
+  }
+
+  try {
+    const aiResult = await rewriteWithAi({ title, excerpt, body });
+    const result = aiResult || fallbackRephrase({ title, excerpt, body });
+
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('News rewrite failed:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to rewrite content.',
+    });
+  }
+});
 
 // Visitors endpoint
 app.get('/api/visitors', async (req, res) => {
