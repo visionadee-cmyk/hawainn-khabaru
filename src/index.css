@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Dhivehi';
+  src: url('/fonts/Dhivehi.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: 'Dhivehi', 'Noto Sans', system-ui, sans-serif;
+  direction: rtl;
+  text-align: right;
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 28%), linear-gradient(180deg, #020617 0%, #0f172a 100%);
+}
+
+html {
+  scroll-behavior: smooth;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.28);
+  color: #ffffff;
+}
+
+body.dark {
+  background-color: #020617;
+}
+
+
+@keyframes marquee {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+body.light {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.rtl {
+  direction: rtl;
+}

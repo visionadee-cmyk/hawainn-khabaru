@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="dv" dir="rtl" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ހަވާ ޑެއިލީ - Maldives news portal with Dhivehi RTL support, PWA install, and modern mobile + desktop experiences." />
+    <meta name="theme-color" content="#0ea5e9" />
+    <title>ހަވާ ޑެއިލީ | Hawa Daily</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <meta property="og:title" content="ހަވާ ޑެއިލީ - Hawa Daily" />
+    <meta property="og:description" content="Modern Maldives news portal with full Dhivehi RTL support and PWA experience." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="dv" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      // Load Facebook SDK
+      const fbAppId = import.meta.env.VITE_FACEBOOK_APP_ID || '';
+
+      window.fbAsyncInit = function() {
+        if (window.FB && fbAppId) {
+          window.FB.init({
+            appId: fbAppId,
+            xfbml: true,
+            version: 'v20.0'
+          });
+        }
+      };
+
+      (function(d, s, id) {
+        const js = d.createElement(s);
+        js.id = id;
+        js.src = 'https://connect.facebook.net/en_US/sdk.js';
+        const fjs = d.getElementsByTagName(s)[0];
+        if (fjs) {
+          fjs.parentNode.insertBefore(js, fjs);
+        } else {
+          d.head.appendChild(js);
+        }
+      }(document, 'script', 'facebook-jssdk'));
+    </script>
+  </body>
+</html>
